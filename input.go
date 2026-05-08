@@ -45,7 +45,7 @@ const (
 )
 const EVIOCGNAME = 0x80ff4506
 
-func getDeviceName(path string) string {
+func GetDeviceName(path string) string {
 	f, err := os.Open(path)
 	if err != nil {
 		return "Unknown (Permission Denied)"
@@ -71,7 +71,7 @@ func getDeviceName(path string) string {
 	return string(bytes.Trim(name, "\x00"))
 }
 
-func getPersistentID(eventPath string) string {
+func GetPersistentID(eventPath string) string {
 	// eventPath is like "/dev/input/event4"
 	absPath, _ := filepath.Abs(eventPath)
 
@@ -85,7 +85,7 @@ func getPersistentID(eventPath string) string {
 	return "" // No persistent ID found (likely a virtual device)
 }
 
-func getDeviceFromIdOrName(input string) (string, error) {
+func GetDeviceFromIdOrName(input string) (string, error) {
 	var devicePath string
 
 	if strings.HasPrefix(input, "id:") {
@@ -105,7 +105,7 @@ func getDeviceFromIdOrName(input string) (string, error) {
 		for _, f := range files {
 			if strings.HasPrefix(f.Name(), "event") {
 				path := filepath.Join("/dev/input/", f.Name())
-				if getDeviceName(path) == targetName {
+				if GetDeviceName(path) == targetName {
 					devicePath = path
 					break
 				}
@@ -134,7 +134,7 @@ type uinput_user_dev struct {
 	AbsFlat   [64]int32
 }
 
-func createVirtualMouse() (*os.File, error) {
+func CreateVirtualMouse() (*os.File, error) {
 	// Use unix.O_NONBLOCK or syscall.O_NONBLOCK
 	fd, err := os.OpenFile("/dev/uinput", os.O_WRONLY|unix.O_NONBLOCK, 0660)
 	if err != nil {
@@ -170,9 +170,9 @@ func createVirtualMouse() (*os.File, error) {
 	return fd, nil
 }
 
-type input_event struct {
-	Time  syscall.Timeval
-	Type  uint16
-	Code  uint16
-	Value int32
-}
+// type input_event struct {
+// 	Time  syscall.Timeval
+// 	Type  uint16
+// 	Code  uint16
+// 	Value int32
+// }

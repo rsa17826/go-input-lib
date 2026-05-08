@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func getDeviceToUser() {
+func GetDeviceToUser() {
 	// 1. Get all persistent device paths
 	files, _ := os.ReadDir("/dev/input/")
 
@@ -19,7 +19,7 @@ func getDeviceToUser() {
 	for _, f := range files {
 		if strings.HasPrefix(f.Name(), "event") {
 			path := "/dev/input/" + f.Name()
-			println(getDeviceName(path))
+			println(GetDeviceName(path))
 			go func(p string) {
 				f, err := os.Open(p)
 				if err != nil {
@@ -36,11 +36,11 @@ func getDeviceToUser() {
 
 					// Type 1 = EV_KEY, Value 1 = Key Down
 					if ev.Type == 1 && ev.Value == 1 {
-						id := getPersistentID(p)
+						id := GetPersistentID(p)
 						if id != "" {
 							foundChan <- "id:" + strings.TrimPrefix(id, "/dev/input/by-id/")
 						} else {
-							foundChan <- "name:" + getDeviceName(p)
+							foundChan <- "name:" + GetDeviceName(p)
 						}
 						return
 					}
