@@ -146,6 +146,8 @@ const (
 	KEY_LEFTMETA   = 125
 	KEY_RIGHTMETA  = 126
 	KEY_COMPOSE    = 127
+
+	BUS_USB = 0x0003
 )
 const EVIOCGNAME = 0x80ff4506
 
@@ -247,14 +249,18 @@ type uinput_user_dev struct {
 	AbsFlat   [64]int32
 }
 
-func CreateVirtualMouse() (*os.File, error) {
-	// Use unix.O_NONBLOCK or syscall.O_NONBLOCK
-	fd, err := os.OpenFile("/dev/uinput", os.O_WRONLY|unix.O_NONBLOCK, 0660)
+func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
+	blocking := len(block) > 0 && block[0]
+
+	flags := os.O_WRONLY
+	if !blocking {
+		flags |= unix.O_NONBLOCK
+	}
+	fd, err := os.OpenFile("/dev/uinput", flags, 0660)
 	if err != nil {
 		return nil, err
 	}
 
-	// Use your local constants (removed "unix." prefix)
 	ifd := int(fd.Fd())
 	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_KEY)
 	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_LEFT)
@@ -268,8 +274,8 @@ func CreateVirtualMouse() (*os.File, error) {
 
 	// Setup the virtual device metadata
 	var usetup uinput_user_dev
-	copy(usetup.Name[:], "Turbo-Mouse")
-	usetup.ID = 0x0003 // BUS_USB
+	copy(usetup.Name[:], name)
+	usetup.ID = BUS_USB
 
 	// Write the setup struct to the file descriptor
 	err = binary.Write(fd, binary.LittleEndian, usetup)
@@ -280,8 +286,39 @@ func CreateVirtualMouse() (*os.File, error) {
 	// Finalize device creation
 	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
 
-	return fd, nil
+	return &VirtualMouse{dev: fd}, nil
 }
+func (self *VirtualMouse) PressButton(button int) error {
+}
+func (self *VirtualMouse) Click(args ...ClickArg) error {
+	var holdFor, afterDelay time.Duration
+
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case RawButton:
+			if err := self.SendEvent(uint16(v), holdFor, afterDelay); err != nil {
+				return err
+			}
+
+		case InputTiming:
+			holdFor = v.HoldFor
+			afterDelay = v.AfterDelay
+
+		case DelayNow:
+			time.Sleep(time.Duration(v))
+		}
+	}
+	return nil
+}
+
+// PressArg is the sealed interface accepted by Press.
+type ClickArg interface{ isClickArg() }
+
+// RawKey presses a key directly by its kernel keycode (e.g. KEY_ENTER, KEY_F5).
+// No shift handling — whatever code you pass is exactly what gets sent.
+type RawButton uint16
+
+func (RawButton) isClickArg() {}
 
 // type input_event struct {
 // 	Time  syscall.Timeval
@@ -353,4 +390,300 @@ func WaitForDevice(idOrName string) string {
 		println("waiting for device:", idOrName)
 		time.Sleep(500 * time.Millisecond)
 	}
+}
+
+type VirtualInput : VirtualKeyboard|VirtualMouse
+type VirtualKeyboard struct {
+	dev *os.File
+}
+type VirtualMouse struct {
+	dev *os.File
+}
+
+func (kbd *VirtualMouse) Close() error {
+	return kbd.dev.Close()
+}
+func (kbd *VirtualKeyboard) Close() error {
+	return kbd.dev.Close()
+}
+
+// ── Argument types ────────────────────────────────────────────────────────────
+
+// PressArg is the sealed interface accepted by Press.
+type PressArg interface{ isPressArg() }
+
+// RawKey presses a key directly by its kernel keycode (e.g. KEY_ENTER, KEY_F5).
+// No shift handling — whatever code you pass is exactly what gets sent.
+type RawKey uint16
+
+func (RawKey) isPressArg() {}
+
+// KeyString types each character in the string, automatically applying the
+// correct keycode and Shift modifier for each rune.
+//
+// Example: KeyString(`asd"123!@#|\`) types those characters literally.
+type KeyString string
+
+func (KeyString) isPressArg() {}
+
+// InputTiming changes the hold-duration and post-key delay for every key that
+// follows it in the same Press call. Zero values mean no delay.
+type InputTiming struct {
+	HoldFor    time.Duration // how long to hold each key before releasing
+	AfterDelay time.Duration // pause after each key is released
+}
+
+func (InputTiming) isPressArg() {}
+func (InputTiming) isClickArg() {}
+
+// DelayNow inserts an immediate pause at this point in the sequence.
+// It does not affect the current KeyTiming.
+//
+// Example: Press(dev, KeyString("hello"), DelayNow(500*time.Millisecond), KeyString("world"))
+type DelayNow time.Duration
+
+func (DelayNow) isPressArg() {}
+func (DelayNow) isClickArg() {}
+
+// ── Press ─────────────────────────────────────────────────────────────────────
+
+// Press sends a sequence of key events to dev (a virtual keyboard created by
+// CreateVirtualKeyboard). Args can be any mix of RawKey, KeyString, KeyTiming,
+// and DelayNow in any order.
+//
+// Example:
+//
+//	kbd, _ := CreateVirtualKeyboard()
+//	kbd.Press(
+//	    KeyTiming{HoldFor: 10*time.Millisecond, AfterDelay: 30*time.Millisecond},
+//	    KeyString("Hello, World!"),
+//	    DelayNow(time.Second),
+//	    RawKey(KEY_ENTER),
+//	)
+func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
+	var holdFor, afterDelay time.Duration
+
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case RawKey:
+			if err := kbd.TapKey(uint16(v), holdFor, afterDelay); err != nil {
+				return err
+			}
+
+		case KeyString:
+			for _, ch := range string(v) {
+				info, ok := charKeyMap[ch]
+				if !ok {
+					return fmt.Errorf("press: no keycode mapping for character %q", ch)
+				}
+				if err := kbd.TapKeyWithShift(info.code, info.shift, holdFor, afterDelay); err != nil {
+					return err
+				}
+			}
+
+		case InputTiming:
+			holdFor = v.HoldFor
+			afterDelay = v.AfterDelay
+
+		case DelayNow:
+			time.Sleep(time.Duration(v))
+		}
+	}
+	return nil
+}
+
+// ── Virtual keyboard ──────────────────────────────────────────────────────────
+
+// CreateVirtualKeyboard creates a uinput virtual keyboard device and returns
+// its file descriptor. The caller is responsible for closing it.
+func CreateVirtualKeyboard(name string, block ...bool) (*VirtualKeyboard, error) {
+	blocking := len(block) > 0 && block[0]
+
+	flags := os.O_WRONLY
+	if !blocking {
+		flags |= unix.O_NONBLOCK
+	}
+	fd, err := os.OpenFile("/dev/uinput", flags, 0660)
+	if err != nil {
+		return nil, err
+	}
+
+	ifd := int(fd.Fd())
+
+	// Register EV_KEY support
+	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_KEY)
+
+	// Register every key we know about
+	for code := range allKeyCodes {
+		unix.IoctlSetInt(ifd, UI_SET_KEYBIT, int(code))
+	}
+
+	var usetup uinput_user_dev
+	copy(usetup.Name[:], name)
+	usetup.ID = BUS_USB //
+
+	if err := binary.Write(fd, binary.LittleEndian, usetup); err != nil {
+		fd.Close()
+		return nil, err
+	}
+
+	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
+
+	return &VirtualKeyboard{dev: fd}, nil
+}
+
+func (self *VirtualInput) SendEvent(evType, code uint16, value int32) error {
+	ev := InputEvent{Type: evType, Code: code, Value: value}
+	return binary.Write(self.dev, binary.LittleEndian, ev)
+}
+
+func (kbd *VirtualKeyboard) Sync() error {
+	return kbd.SendEvent(EV_SYN, 0, 0)
+}
+
+// TapKey presses and releases a single keycode, with optional hold and post delay.
+func (kbd *VirtualKeyboard) TapKey(code uint16, holdFor, afterDelay time.Duration) error {
+	if err := kbd.SendEvent(EV_KEY, code, 1); err != nil { // key down
+		return err
+	}
+	if err := kbd.Sync(); err != nil {
+		return err
+	}
+	if holdFor > 0 {
+		time.Sleep(holdFor)
+	}
+	if err := kbd.SendEvent(EV_KEY, code, 0); err != nil { // key up
+		return err
+	}
+	if err := kbd.Sync(); err != nil {
+		return err
+	}
+	if afterDelay > 0 {
+		time.Sleep(afterDelay)
+	}
+	return nil
+}
+
+// TapKeyWithShift wraps tapKey with an optional Left Shift hold around it.
+func (kbd *VirtualKeyboard) TapKeyWithShift(code uint16, shift bool, holdFor, afterDelay time.Duration) error {
+	if shift {
+		if err := kbd.SendEvent(EV_KEY, KEY_LEFTSHIFT, 1); err != nil {
+			return err
+		}
+		if err := kbd.Sync(); err != nil {
+			return err
+		}
+	}
+
+	if err := kbd.SendEvent(EV_KEY, code, 1); err != nil {
+		return err
+	}
+	if err := kbd.Sync(); err != nil {
+		return err
+	}
+	if holdFor > 0 {
+		time.Sleep(holdFor)
+	}
+	if err := kbd.SendEvent(EV_KEY, code, 0); err != nil {
+		return err
+	}
+	if err := kbd.Sync(); err != nil {
+		return err
+	}
+
+	if shift {
+		if err := kbd.SendEvent(EV_KEY, KEY_LEFTSHIFT, 0); err != nil {
+			return err
+		}
+		if err := kbd.Sync(); err != nil {
+			return err
+		}
+	}
+
+	if afterDelay > 0 {
+		time.Sleep(afterDelay)
+	}
+	return nil
+}
+
+// ── Character → keycode map ───────────────────────────────────────────────────
+
+type keyInfo struct {
+	code  uint16
+	shift bool
+}
+
+var allKeyCodes = map[uint16]struct{}{
+	KEY_ESC: {}, KEY_1: {}, KEY_2: {}, KEY_3: {}, KEY_4: {}, KEY_5: {},
+	KEY_6: {}, KEY_7: {}, KEY_8: {}, KEY_9: {}, KEY_0: {}, KEY_MINUS: {},
+	KEY_EQUAL: {}, KEY_BACKSPACE: {}, KEY_TAB: {}, KEY_Q: {}, KEY_W: {},
+	KEY_E: {}, KEY_R: {}, KEY_T: {}, KEY_Y: {}, KEY_U: {}, KEY_I: {},
+	KEY_O: {}, KEY_P: {}, KEY_LEFTBRACE: {}, KEY_RIGHTBRACE: {}, KEY_ENTER: {},
+	KEY_LEFTCTRL: {}, KEY_A: {}, KEY_S: {}, KEY_D: {}, KEY_F: {}, KEY_G: {},
+	KEY_H: {}, KEY_J: {}, KEY_K: {}, KEY_L: {}, KEY_SEMICOLON: {},
+	KEY_APOSTROPHE: {}, KEY_GRAVE: {}, KEY_LEFTSHIFT: {}, KEY_BACKSLASH: {},
+	KEY_Z: {}, KEY_X: {}, KEY_C: {}, KEY_V: {}, KEY_B: {}, KEY_N: {},
+	KEY_M: {}, KEY_COMMA: {}, KEY_DOT: {}, KEY_SLASH: {}, KEY_RIGHTSHIFT: {},
+	KEY_LEFTALT: {}, KEY_SPACE: {}, KEY_CAPSLOCK: {}, KEY_F1: {}, KEY_F2: {},
+	KEY_F3: {}, KEY_F4: {}, KEY_F5: {}, KEY_F6: {}, KEY_F7: {}, KEY_F8: {},
+	KEY_F9: {}, KEY_F10: {}, KEY_F11: {}, KEY_F12: {}, KEY_RIGHTCTRL: {},
+	KEY_RIGHTALT: {}, KEY_HOME: {}, KEY_UP: {}, KEY_PAGEUP: {}, KEY_LEFT: {},
+	KEY_RIGHT: {}, KEY_END: {}, KEY_DOWN: {}, KEY_PAGEDOWN: {}, KEY_INSERT: {},
+	KEY_DELETE: {}, KEY_LEFTMETA: {}, KEY_RIGHTMETA: {},
+}
+
+// charKeyMap maps every typeable rune to its keycode + whether Shift is needed.
+var charKeyMap = map[rune]keyInfo{
+	// Lowercase letters
+	'a': {KEY_A, false}, 'b': {KEY_B, false}, 'c': {KEY_C, false},
+	'd': {KEY_D, false}, 'e': {KEY_E, false}, 'f': {KEY_F, false},
+	'g': {KEY_G, false}, 'h': {KEY_H, false}, 'i': {KEY_I, false},
+	'j': {KEY_J, false}, 'k': {KEY_K, false}, 'l': {KEY_L, false},
+	'm': {KEY_M, false}, 'n': {KEY_N, false}, 'o': {KEY_O, false},
+	'p': {KEY_P, false}, 'q': {KEY_Q, false}, 'r': {KEY_R, false},
+	's': {KEY_S, false}, 't': {KEY_T, false}, 'u': {KEY_U, false},
+	'v': {KEY_V, false}, 'w': {KEY_W, false}, 'x': {KEY_X, false},
+	'y': {KEY_Y, false}, 'z': {KEY_Z, false},
+
+	// Uppercase letters (shift)
+	'A': {KEY_A, true}, 'B': {KEY_B, true}, 'C': {KEY_C, true},
+	'D': {KEY_D, true}, 'E': {KEY_E, true}, 'F': {KEY_F, true},
+	'G': {KEY_G, true}, 'H': {KEY_H, true}, 'I': {KEY_I, true},
+	'J': {KEY_J, true}, 'K': {KEY_K, true}, 'L': {KEY_L, true},
+	'M': {KEY_M, true}, 'N': {KEY_N, true}, 'O': {KEY_O, true},
+	'P': {KEY_P, true}, 'Q': {KEY_Q, true}, 'R': {KEY_R, true},
+	'S': {KEY_S, true}, 'T': {KEY_T, true}, 'U': {KEY_U, true},
+	'V': {KEY_V, true}, 'W': {KEY_W, true}, 'X': {KEY_X, true},
+	'Y': {KEY_Y, true}, 'Z': {KEY_Z, true},
+
+	// Digits
+	'1': {KEY_1, false}, '2': {KEY_2, false}, '3': {KEY_3, false},
+	'4': {KEY_4, false}, '5': {KEY_5, false}, '6': {KEY_6, false},
+	'7': {KEY_7, false}, '8': {KEY_8, false}, '9': {KEY_9, false},
+	'0': {KEY_0, false},
+
+	// Shifted digits → symbols
+	'!': {KEY_1, true}, '@': {KEY_2, true}, '#': {KEY_3, true},
+	'$': {KEY_4, true}, '%': {KEY_5, true}, '^': {KEY_6, true},
+	'&': {KEY_7, true}, '*': {KEY_8, true}, '(': {KEY_9, true},
+	')': {KEY_0, true},
+
+	// Punctuation (unshifted)
+	'-': {KEY_MINUS, false}, '=': {KEY_EQUAL, false},
+	'[': {KEY_LEFTBRACE, false}, ']': {KEY_RIGHTBRACE, false},
+	'\\': {KEY_BACKSLASH, false}, ';': {KEY_SEMICOLON, false},
+	'\'': {KEY_APOSTROPHE, false}, '`': {KEY_GRAVE, false},
+	',': {KEY_COMMA, false}, '.': {KEY_DOT, false}, '/': {KEY_SLASH, false},
+
+	// Punctuation (shifted)
+	'_': {KEY_MINUS, true}, '+': {KEY_EQUAL, true},
+	'{': {KEY_LEFTBRACE, true}, '}': {KEY_RIGHTBRACE, true},
+	'|': {KEY_BACKSLASH, true}, ':': {KEY_SEMICOLON, true},
+	'"': {KEY_APOSTROPHE, true}, '~': {KEY_GRAVE, true},
+	'<': {KEY_COMMA, true}, '>': {KEY_DOT, true}, '?': {KEY_SLASH, true},
+
+	// Whitespace
+	' ':  {KEY_SPACE, false},
+	'\t': {KEY_TAB, false},
+	'\n': {KEY_ENTER, false},
 }
