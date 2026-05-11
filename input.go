@@ -14,7 +14,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// InputEvent matches the 'input_event' struct in linux/input.h
+// ── Low-level kernel types ────────────────────────────────────────────────────
+
+// InputEvent matches the input_event struct in linux/input.h.
 type InputEvent struct {
 	Time  syscall.Timeval
 	Type  uint16
@@ -22,26 +24,53 @@ type InputEvent struct {
 	Value int32
 }
 
+// uinputUserDev is the setup struct written to /dev/uinput before UI_DEV_CREATE.
+type uinputUserDev struct {
+	Name      [80]byte // UINPUT_MAX_NAME_SIZE
+	ID        uint16   // bus type
+	Vendor    uint16
+	Product   uint16
+	Version   uint16
+	FFEffects uint32
+	AbsMax    [64]int32 // ABS_CNT = 64
+	AbsMin    [64]int32
+	AbsFuzz   [64]int32
+	AbsFlat   [64]int32
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
 const (
-	EV_KEY     = 0x01
-	EV_REL     = 0x02
-	EV_SYN     = 0x00
+	// Event types
+	EV_SYN = 0x00
+	EV_KEY = 0x01
+	EV_REL = 0x02
+
+	// Relative axes
+	REL_X      = 0x00
+	REL_Y      = 0x01
+	REL_HWHEEL = 0x06
+	REL_WHEEL  = 0x08
+
+	// Mouse buttons
 	BTN_LEFT   = 0x110
 	BTN_RIGHT  = 0x111
 	BTN_MIDDLE = 0x112
-	REL_X      = 0x00
-	REL_Y      = 0x01
-	REL_WHEEL  = 0x08
-	REL_HWHEEL = 0x06
 
-	// UInput ioctls
+	// uinput ioctls
 	UI_SET_EVBIT  = 0x40045564
 	UI_SET_KEYBIT = 0x40045565
 	UI_SET_RELBIT = 0x40045566
 	UI_DEV_CREATE = 0x5501
 
-	EVIOCGRAB = 0x40044590
+	// Device ioctls
+	EVIOCGRAB  = 0x40044590
+	EVIOCGNAME = 0x80ff4506
 
+	// Bus type
+	BUS_USB = 0x0003
+
+	// Key codes
 	KEY_ESC        = 1
 	KEY_1          = 2
 	KEY_2          = 3
@@ -146,117 +175,349 @@ const (
 	KEY_LEFTMETA   = 125
 	KEY_RIGHTMETA  = 126
 	KEY_COMPOSE    = 127
-
-	BUS_USB = 0x0003
 )
-const EVIOCGNAME = 0x80ff4506
 
-func GetDeviceName(path string) string {
+// ── Device discovery ──────────────────────────────────────────────────────────
+
+// DeviceName returns the kernel name of the input device at path.
+func DeviceName(path string) string {
 	f, err := os.Open(path)
 	if err != nil {
 		return "Unknown (Permission Denied)"
 	}
 	defer f.Close()
 
-	// Create a buffer to hold the name (up to 256 chars)
 	name := make([]byte, 256)
-
-	// Perform the ioctl syscall
 	_, _, errno := syscall.Syscall(
 		syscall.SYS_IOCTL,
 		f.Fd(),
 		uintptr(EVIOCGNAME),
 		uintptr(unsafe.Pointer(&name[0])),
 	)
-
 	if errno != 0 {
 		return "Unknown Device"
 	}
-
-	// Trim the null characters from the buffer
 	return string(bytes.Trim(name, "\x00"))
 }
 
-func GetPersistentID(eventPath string) (string, error) {
-	// eventPath is like "/dev/input/event4"
+// PersistentID resolves an event path (e.g. /dev/input/event4) to its stable
+// /dev/input/by-id symlink, if one exists.
+func PersistentID(eventPath string) (string, error) {
 	absPath, err := filepath.Abs(eventPath)
 	if err != nil {
 		return "", err
 	}
-
 	matches, err := filepath.Glob("/dev/input/by-id/*")
 	if err != nil {
 		return "", err
 	}
 	for _, idPath := range matches {
-		evalPath, err := filepath.EvalSymlinks(idPath)
+		resolved, err := filepath.EvalSymlinks(idPath)
 		if err != nil {
 			return "", err
 		}
-		if evalPath == absPath {
-			return idPath, nil // Found the persistent ID
+		if resolved == absPath {
+			return idPath, nil
 		}
 	}
-	return "", nil // No persistent ID found (likely a virtual device)
+	return "", nil // no persistent ID (likely a virtual device)
 }
 
-func GetDeviceFromIdOrName(input string) (string, error) {
-	var devicePath string
+// FindDevice resolves an "id:<name>" or "name:<name>" selector to an event path.
+func FindDevice(selector string) (string, error) {
+	switch {
+	case strings.HasPrefix(selector, "id:"):
+		id := strings.TrimPrefix(selector, "id:")
+		return filepath.Join("/dev/input/by-id", id), nil
 
-	if strings.HasPrefix(input, "id:") {
-		// Use the persistent symlink in /dev/input/by-id/
-		idPart := strings.TrimPrefix(input, "id:")
-		devicePath = filepath.Join("/dev/input/by-id", idPart)
-
-	} else if strings.HasPrefix(input, "name:") {
-		// Scan all events to find the one with the matching Name
-		targetName := strings.TrimPrefix(input, "name:")
-
-		files, err := os.ReadDir("/dev/input/")
+	case strings.HasPrefix(selector, "name:"):
+		target := strings.TrimPrefix(selector, "name:")
+		entries, err := os.ReadDir("/dev/input/")
 		if err != nil {
 			return "", err
 		}
-
-		for _, f := range files {
-			if strings.HasPrefix(f.Name(), "event") {
-				path := filepath.Join("/dev/input/", f.Name())
-				if GetDeviceName(path) == targetName {
-					devicePath = path
-					break
+		for _, e := range entries {
+			if strings.HasPrefix(e.Name(), "event") {
+				path := filepath.Join("/dev/input", e.Name())
+				if DeviceName(path) == target {
+					return path, nil
 				}
 			}
 		}
 	}
+	return "", fmt.Errorf("device not found: %s", selector)
+}
 
-	if devicePath == "" {
-		return "", fmt.Errorf("device not found for input: %s", input)
+// WaitForDevice blocks until the device matching selector becomes available,
+// then returns its path.
+func WaitForDevice(selector string) string {
+	for {
+		path, err := FindDevice(selector)
+		if err == nil && path != "" {
+			return path
+		}
+		fmt.Println("waiting for device:", selector)
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// PickDevice listens on all input devices and prints the selector string for
+// the first one that receives a keypress. Use this to identify a device to
+// pass to FindDevice or WaitForDevice.
+func PickDevice() {
+	entries, err := os.ReadDir("/dev/input/")
+	if err != nil {
+		panic(err)
 	}
 
-	// Open the file and return the file pointer
-	return devicePath, nil
+	found := make(chan string, 1)
+	fmt.Println("Listening on all devices — press any key on the target device.")
+
+	for _, e := range entries {
+		if !strings.HasPrefix(e.Name(), "event") {
+			continue
+		}
+		path := filepath.Join("/dev/input", e.Name())
+		fmt.Println(" ", DeviceName(path))
+
+		go func(p string) {
+			f, err := os.Open(p)
+			if err != nil {
+				return
+			}
+			defer f.Close()
+
+			var ev InputEvent
+			for {
+				if err := binary.Read(f, binary.LittleEndian, &ev); err != nil {
+					return
+				}
+				if ev.Type == EV_KEY && ev.Value == 1 {
+					id, err := PersistentID(p)
+					if err != nil || id == "" {
+						found <- "name:" + DeviceName(p)
+					} else {
+						found <- "id:" + strings.TrimPrefix(id, "/dev/input/by-id/")
+					}
+					return
+				}
+			}
+		}(path)
+	}
+
+	selector := <-found
+	fmt.Printf("\nDevice identified: %q\n", selector)
+	fmt.Println("Pass this string to WaitForDevice or FindDevice.")
 }
 
-type uinput_user_dev struct {
-	Name      [80]byte // UINPUT_MAX_NAME_SIZE is usually 80
-	ID        uint16   // Bus type
-	Vendor    uint16
-	Product   uint16
-	Version   uint16
-	FFEffects uint32
-	AbsMax    [64]int32 // ABS_CNT is 64
-	AbsMin    [64]int32
-	AbsFuzz   [64]int32
-	AbsFlat   [64]int32
+// ── Shared virtual device base ────────────────────────────────────────────────
+
+// virtualDev is embedded in VirtualKeyboard and VirtualMouse to share the
+// underlying file handle and low-level send/sync logic.
+type virtualDev struct {
+	dev *os.File
 }
 
-func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
-	blocking := len(block) > 0 && block[0]
+func (d *virtualDev) sendEvent(evType, code uint16, value int32) error {
+	ev := InputEvent{Type: evType, Code: code, Value: value}
+	return binary.Write(d.dev, binary.LittleEndian, ev)
+}
 
+func (d *virtualDev) sync() error {
+	return d.sendEvent(EV_SYN, 0, 0)
+}
+
+// Close releases the uinput device.
+func (d *virtualDev) Close() error {
+	return d.dev.Close()
+}
+
+func openUinput(blocking bool) (*os.File, error) {
 	flags := os.O_WRONLY
 	if !blocking {
 		flags |= unix.O_NONBLOCK
 	}
-	fd, err := os.OpenFile("/dev/uinput", flags, 0660)
+	return os.OpenFile("/dev/uinput", flags, 0660)
+}
+
+func writeUinputSetup(fd *os.File, name string) error {
+	var setup uinputUserDev
+	copy(setup.Name[:], name)
+	setup.ID = BUS_USB
+	return binary.Write(fd, binary.LittleEndian, setup)
+}
+
+// ── Argument types (shared by Press and Click) ────────────────────────────────
+
+// PressArg is the sealed interface for VirtualKeyboard.Press arguments.
+type PressArg interface{ isPressArg() }
+
+// ClickArg is the sealed interface for VirtualMouse.Click arguments.
+type ClickArg interface{ isClickArg() }
+
+// RawKey presses a key directly by its kernel keycode (e.g. KEY_ENTER).
+// No shift handling is applied.
+type RawKey uint16
+
+func (RawKey) isPressArg() {}
+
+// RawButton clicks a mouse button directly by its kernel code (e.g. BTN_LEFT).
+type RawButton uint16
+
+func (RawButton) isClickArg() {}
+
+// KeyString types each character, automatically applying the correct keycode
+// and Shift modifier for each rune.
+//
+//	kbd.Press(KeyString(`Hello, World!`))
+type KeyString string
+
+func (KeyString) isPressArg() {}
+
+// InputTiming sets the hold-duration and post-event delay for all subsequent
+// events in the same Press or Click call. Zero values mean no delay.
+type InputTiming struct {
+	HoldFor    time.Duration // how long to hold the key/button before releasing
+	AfterDelay time.Duration // pause after releasing
+}
+
+func (InputTiming) isPressArg() {}
+func (InputTiming) isClickArg() {}
+
+// DelayNow inserts an immediate sleep at this point in the sequence without
+// affecting the current InputTiming.
+type DelayNow time.Duration
+
+func (DelayNow) isPressArg() {}
+func (DelayNow) isClickArg() {}
+
+// ── VirtualKeyboard ───────────────────────────────────────────────────────────
+
+// VirtualKeyboard is a uinput virtual keyboard device.
+type VirtualKeyboard struct{ virtualDev }
+
+// CreateVirtualKeyboard creates a uinput virtual keyboard.
+// Pass block=true to open the fd in blocking mode (default: non-blocking).
+func CreateVirtualKeyboard(name string, block ...bool) (*VirtualKeyboard, error) {
+	blocking := len(block) > 0 && block[0]
+
+	fd, err := openUinput(blocking)
+	if err != nil {
+		return nil, err
+	}
+
+	ifd := int(fd.Fd())
+	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_KEY)
+	for code := range allKeyCodes {
+		unix.IoctlSetInt(ifd, UI_SET_KEYBIT, int(code))
+	}
+
+	if err := writeUinputSetup(fd, name); err != nil {
+		fd.Close()
+		return nil, err
+	}
+	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
+
+	return &VirtualKeyboard{virtualDev{fd}}, nil
+}
+
+// Press sends a sequence of key events. Args can be any mix of RawKey,
+// KeyString, InputTiming, and DelayNow in any order.
+//
+//	kbd.Press(
+//	    InputTiming{HoldFor: 10*time.Millisecond, AfterDelay: 20*time.Millisecond},
+//	    KeyString("Hello!"),
+//	    DelayNow(time.Second),
+//	    RawKey(KEY_ENTER),
+//	)
+func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
+	var holdFor, afterDelay time.Duration
+
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case RawKey:
+			if err := kbd.tapKey(uint16(v), holdFor, afterDelay); err != nil {
+				return err
+			}
+		case KeyString:
+			for _, ch := range string(v) {
+				info, ok := charKeyMap[ch]
+				if !ok {
+					return fmt.Errorf("press: no keycode mapping for %q", ch)
+				}
+				if err := kbd.tapKeyMaybeShift(info.code, info.shift, holdFor, afterDelay); err != nil {
+					return err
+				}
+			}
+		case InputTiming:
+			holdFor = v.HoldFor
+			afterDelay = v.AfterDelay
+		case DelayNow:
+			time.Sleep(time.Duration(v))
+		}
+	}
+	return nil
+}
+
+func (kbd *VirtualKeyboard) tapKey(code uint16, holdFor, afterDelay time.Duration) error {
+	if err := kbd.sendEvent(EV_KEY, code, 1); err != nil {
+		return err
+	}
+	if err := kbd.sync(); err != nil {
+		return err
+	}
+	if holdFor > 0 {
+		time.Sleep(holdFor)
+	}
+	if err := kbd.sendEvent(EV_KEY, code, 0); err != nil {
+		return err
+	}
+	if err := kbd.sync(); err != nil {
+		return err
+	}
+	if afterDelay > 0 {
+		time.Sleep(afterDelay)
+	}
+	return nil
+}
+
+func (kbd *VirtualKeyboard) tapKeyMaybeShift(code uint16, shift bool, holdFor, afterDelay time.Duration) error {
+	if shift {
+		if err := kbd.sendEvent(EV_KEY, KEY_LEFTSHIFT, 1); err != nil {
+			return err
+		}
+		if err := kbd.sync(); err != nil {
+			return err
+		}
+	}
+	if err := kbd.tapKey(code, holdFor, 0); err != nil {
+		return err
+	}
+	if shift {
+		if err := kbd.sendEvent(EV_KEY, KEY_LEFTSHIFT, 0); err != nil {
+			return err
+		}
+		if err := kbd.sync(); err != nil {
+			return err
+		}
+	}
+	if afterDelay > 0 {
+		time.Sleep(afterDelay)
+	}
+	return nil
+}
+
+// ── VirtualMouse ──────────────────────────────────────────────────────────────
+
+// VirtualMouse is a uinput virtual mouse device.
+type VirtualMouse struct{ virtualDev }
+
+// CreateVirtualMouse creates a uinput virtual mouse.
+// Pass block=true to open the fd in blocking mode (default: non-blocking).
+func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
+	blocking := len(block) > 0 && block[0]
+
+	fd, err := openUinput(blocking)
 	if err != nil {
 		return nil, err
 	}
@@ -272,38 +533,32 @@ func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
 	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_WHEEL)
 	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_HWHEEL)
 
-	// Setup the virtual device metadata
-	var usetup uinput_user_dev
-	copy(usetup.Name[:], name)
-	usetup.ID = BUS_USB
-
-	// Write the setup struct to the file descriptor
-	err = binary.Write(fd, binary.LittleEndian, usetup)
-	if err != nil {
+	if err := writeUinputSetup(fd, name); err != nil {
+		fd.Close()
 		return nil, err
 	}
-
-	// Finalize device creation
 	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
 
-	return &VirtualMouse{dev: fd}, nil
+	return &VirtualMouse{virtualDev{fd}}, nil
 }
-func (self *VirtualMouse) PressButton(button int) error {
-}
-func (self *VirtualMouse) Click(args ...ClickArg) error {
+
+// Click sends a sequence of button events. Args can be any mix of RawButton,
+// InputTiming, and DelayNow in any order.
+//
+//	mouse.Click(RawButton(BTN_LEFT))
+//	mouse.Click(InputTiming{HoldFor: 50*time.Millisecond}, RawButton(BTN_RIGHT))
+func (m *VirtualMouse) Click(args ...ClickArg) error {
 	var holdFor, afterDelay time.Duration
 
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case RawButton:
-			if err := self.SendEvent(uint16(v), holdFor, afterDelay); err != nil {
+			if err := m.tapButton(uint16(v), holdFor, afterDelay); err != nil {
 				return err
 			}
-
 		case InputTiming:
 			holdFor = v.HoldFor
 			afterDelay = v.AfterDelay
-
 		case DelayNow:
 			time.Sleep(time.Duration(v))
 		}
@@ -311,295 +566,48 @@ func (self *VirtualMouse) Click(args ...ClickArg) error {
 	return nil
 }
 
-// PressArg is the sealed interface accepted by Press.
-type ClickArg interface{ isClickArg() }
-
-// RawKey presses a key directly by its kernel keycode (e.g. KEY_ENTER, KEY_F5).
-// No shift handling — whatever code you pass is exactly what gets sent.
-type RawButton uint16
-
-func (RawButton) isClickArg() {}
-
-// type input_event struct {
-// 	Time  syscall.Timeval
-// 	Type  uint16
-// 	Code  uint16
-// 	Value int32
-// }
-
-func GetDeviceToUser() {
-	// 1. Get all persistent device paths
-	files, err := os.ReadDir("/dev/input/")
-	if err != nil {
-		panic(err)
-	}
-
-	// Channel to receive the ID of the device that was touched
-	foundChan := make(chan string)
-
-	fmt.Println("Listening on all devices... Press any key on the target device.")
-
-	for _, f := range files {
-		if strings.HasPrefix(f.Name(), "event") {
-			path := "/dev/input/" + f.Name()
-			println(GetDeviceName(path))
-			go func(p string) {
-				f, err := os.Open(p)
-				if err != nil {
-					return
-				}
-				defer f.Close()
-
-				var ev InputEvent
-				for {
-					err := binary.Read(f, binary.LittleEndian, &ev)
-					if err != nil {
-						return
-					}
-
-					// Type 1 = EV_KEY, Value 1 = Key Down
-					if ev.Type == 1 && ev.Value == 1 {
-						id, err := GetPersistentID(p)
-						if err != nil {
-							panic(err)
-						}
-						if id != "" {
-							foundChan <- "id:" + strings.TrimPrefix(id, "/dev/input/by-id/")
-						} else {
-							foundChan <- "name:" + GetDeviceName(p)
-						}
-						return
-					}
-				}
-			}(path)
-		}
-	}
-
-	// Wait for the first device to send a keypress
-	winningID := <-foundChan
-	fmt.Printf("\nTarget Device Identified!\n")
-	fmt.Printf("Persistent ID: \"%s\"\n", winningID)
-	fmt.Println("Use this path in your code to ensure you get the same device every time.")
-}
-func WaitForDevice(idOrName string) string {
-	for {
-		path, err := GetDeviceFromIdOrName(idOrName)
-		if err == nil && path != "" {
-			return path
-		}
-		println("waiting for device:", idOrName)
-		time.Sleep(500 * time.Millisecond)
-	}
-}
-
-type VirtualInput : VirtualKeyboard|VirtualMouse
-type VirtualKeyboard struct {
-	dev *os.File
-}
-type VirtualMouse struct {
-	dev *os.File
-}
-
-func (kbd *VirtualMouse) Close() error {
-	return kbd.dev.Close()
-}
-func (kbd *VirtualKeyboard) Close() error {
-	return kbd.dev.Close()
-}
-
-// ── Argument types ────────────────────────────────────────────────────────────
-
-// PressArg is the sealed interface accepted by Press.
-type PressArg interface{ isPressArg() }
-
-// RawKey presses a key directly by its kernel keycode (e.g. KEY_ENTER, KEY_F5).
-// No shift handling — whatever code you pass is exactly what gets sent.
-type RawKey uint16
-
-func (RawKey) isPressArg() {}
-
-// KeyString types each character in the string, automatically applying the
-// correct keycode and Shift modifier for each rune.
-//
-// Example: KeyString(`asd"123!@#|\`) types those characters literally.
-type KeyString string
-
-func (KeyString) isPressArg() {}
-
-// InputTiming changes the hold-duration and post-key delay for every key that
-// follows it in the same Press call. Zero values mean no delay.
-type InputTiming struct {
-	HoldFor    time.Duration // how long to hold each key before releasing
-	AfterDelay time.Duration // pause after each key is released
-}
-
-func (InputTiming) isPressArg() {}
-func (InputTiming) isClickArg() {}
-
-// DelayNow inserts an immediate pause at this point in the sequence.
-// It does not affect the current KeyTiming.
-//
-// Example: Press(dev, KeyString("hello"), DelayNow(500*time.Millisecond), KeyString("world"))
-type DelayNow time.Duration
-
-func (DelayNow) isPressArg() {}
-func (DelayNow) isClickArg() {}
-
-// ── Press ─────────────────────────────────────────────────────────────────────
-
-// Press sends a sequence of key events to dev (a virtual keyboard created by
-// CreateVirtualKeyboard). Args can be any mix of RawKey, KeyString, KeyTiming,
-// and DelayNow in any order.
-//
-// Example:
-//
-//	kbd, _ := CreateVirtualKeyboard()
-//	kbd.Press(
-//	    KeyTiming{HoldFor: 10*time.Millisecond, AfterDelay: 30*time.Millisecond},
-//	    KeyString("Hello, World!"),
-//	    DelayNow(time.Second),
-//	    RawKey(KEY_ENTER),
-//	)
-func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
-	var holdFor, afterDelay time.Duration
-
-	for _, arg := range args {
-		switch v := arg.(type) {
-		case RawKey:
-			if err := kbd.TapKey(uint16(v), holdFor, afterDelay); err != nil {
-				return err
-			}
-
-		case KeyString:
-			for _, ch := range string(v) {
-				info, ok := charKeyMap[ch]
-				if !ok {
-					return fmt.Errorf("press: no keycode mapping for character %q", ch)
-				}
-				if err := kbd.TapKeyWithShift(info.code, info.shift, holdFor, afterDelay); err != nil {
-					return err
-				}
-			}
-
-		case InputTiming:
-			holdFor = v.HoldFor
-			afterDelay = v.AfterDelay
-
-		case DelayNow:
-			time.Sleep(time.Duration(v))
-		}
-	}
-	return nil
-}
-
-// ── Virtual keyboard ──────────────────────────────────────────────────────────
-
-// CreateVirtualKeyboard creates a uinput virtual keyboard device and returns
-// its file descriptor. The caller is responsible for closing it.
-func CreateVirtualKeyboard(name string, block ...bool) (*VirtualKeyboard, error) {
-	blocking := len(block) > 0 && block[0]
-
-	flags := os.O_WRONLY
-	if !blocking {
-		flags |= unix.O_NONBLOCK
-	}
-	fd, err := os.OpenFile("/dev/uinput", flags, 0660)
-	if err != nil {
-		return nil, err
-	}
-
-	ifd := int(fd.Fd())
-
-	// Register EV_KEY support
-	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_KEY)
-
-	// Register every key we know about
-	for code := range allKeyCodes {
-		unix.IoctlSetInt(ifd, UI_SET_KEYBIT, int(code))
-	}
-
-	var usetup uinput_user_dev
-	copy(usetup.Name[:], name)
-	usetup.ID = BUS_USB //
-
-	if err := binary.Write(fd, binary.LittleEndian, usetup); err != nil {
-		fd.Close()
-		return nil, err
-	}
-
-	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
-
-	return &VirtualKeyboard{dev: fd}, nil
-}
-
-func (self *VirtualInput) SendEvent(evType, code uint16, value int32) error {
-	ev := InputEvent{Type: evType, Code: code, Value: value}
-	return binary.Write(self.dev, binary.LittleEndian, ev)
-}
-
-func (kbd *VirtualKeyboard) Sync() error {
-	return kbd.SendEvent(EV_SYN, 0, 0)
-}
-
-// TapKey presses and releases a single keycode, with optional hold and post delay.
-func (kbd *VirtualKeyboard) TapKey(code uint16, holdFor, afterDelay time.Duration) error {
-	if err := kbd.SendEvent(EV_KEY, code, 1); err != nil { // key down
+// Move moves the mouse cursor by dx, dy relative to its current position.
+func (m *VirtualMouse) Move(dx, dy int32) error {
+	if err := m.sendEvent(EV_REL, REL_X, dx); err != nil {
 		return err
 	}
-	if err := kbd.Sync(); err != nil {
+	if err := m.sendEvent(EV_REL, REL_Y, dy); err != nil {
+		return err
+	}
+	return m.sync()
+}
+
+// Scroll scrolls vertically by clicks (positive = up) and horizontally by hClicks.
+func (m *VirtualMouse) Scroll(clicks, hClicks int32) error {
+	if clicks != 0 {
+		if err := m.sendEvent(EV_REL, REL_WHEEL, clicks); err != nil {
+			return err
+		}
+	}
+	if hClicks != 0 {
+		if err := m.sendEvent(EV_REL, REL_HWHEEL, hClicks); err != nil {
+			return err
+		}
+	}
+	return m.sync()
+}
+
+func (m *VirtualMouse) tapButton(code uint16, holdFor, afterDelay time.Duration) error {
+	if err := m.sendEvent(EV_KEY, code, 1); err != nil {
+		return err
+	}
+	if err := m.sync(); err != nil {
 		return err
 	}
 	if holdFor > 0 {
 		time.Sleep(holdFor)
 	}
-	if err := kbd.SendEvent(EV_KEY, code, 0); err != nil { // key up
+	if err := m.sendEvent(EV_KEY, code, 0); err != nil {
 		return err
 	}
-	if err := kbd.Sync(); err != nil {
+	if err := m.sync(); err != nil {
 		return err
 	}
-	if afterDelay > 0 {
-		time.Sleep(afterDelay)
-	}
-	return nil
-}
-
-// TapKeyWithShift wraps tapKey with an optional Left Shift hold around it.
-func (kbd *VirtualKeyboard) TapKeyWithShift(code uint16, shift bool, holdFor, afterDelay time.Duration) error {
-	if shift {
-		if err := kbd.SendEvent(EV_KEY, KEY_LEFTSHIFT, 1); err != nil {
-			return err
-		}
-		if err := kbd.Sync(); err != nil {
-			return err
-		}
-	}
-
-	if err := kbd.SendEvent(EV_KEY, code, 1); err != nil {
-		return err
-	}
-	if err := kbd.Sync(); err != nil {
-		return err
-	}
-	if holdFor > 0 {
-		time.Sleep(holdFor)
-	}
-	if err := kbd.SendEvent(EV_KEY, code, 0); err != nil {
-		return err
-	}
-	if err := kbd.Sync(); err != nil {
-		return err
-	}
-
-	if shift {
-		if err := kbd.SendEvent(EV_KEY, KEY_LEFTSHIFT, 0); err != nil {
-			return err
-		}
-		if err := kbd.Sync(); err != nil {
-			return err
-		}
-	}
-
 	if afterDelay > 0 {
 		time.Sleep(afterDelay)
 	}
@@ -613,6 +621,7 @@ type keyInfo struct {
 	shift bool
 }
 
+// allKeyCodes is every keycode registered with uinput on keyboard creation.
 var allKeyCodes = map[uint16]struct{}{
 	KEY_ESC: {}, KEY_1: {}, KEY_2: {}, KEY_3: {}, KEY_4: {}, KEY_5: {},
 	KEY_6: {}, KEY_7: {}, KEY_8: {}, KEY_9: {}, KEY_0: {}, KEY_MINUS: {},
@@ -632,9 +641,9 @@ var allKeyCodes = map[uint16]struct{}{
 	KEY_DELETE: {}, KEY_LEFTMETA: {}, KEY_RIGHTMETA: {},
 }
 
-// charKeyMap maps every typeable rune to its keycode + whether Shift is needed.
+// charKeyMap maps every typeable rune to its keycode and whether Shift is needed.
 var charKeyMap = map[rune]keyInfo{
-	// Lowercase letters
+	// Lowercase
 	'a': {KEY_A, false}, 'b': {KEY_B, false}, 'c': {KEY_C, false},
 	'd': {KEY_D, false}, 'e': {KEY_E, false}, 'f': {KEY_F, false},
 	'g': {KEY_G, false}, 'h': {KEY_H, false}, 'i': {KEY_I, false},
@@ -645,7 +654,7 @@ var charKeyMap = map[rune]keyInfo{
 	'v': {KEY_V, false}, 'w': {KEY_W, false}, 'x': {KEY_X, false},
 	'y': {KEY_Y, false}, 'z': {KEY_Z, false},
 
-	// Uppercase letters (shift)
+	// Uppercase
 	'A': {KEY_A, true}, 'B': {KEY_B, true}, 'C': {KEY_C, true},
 	'D': {KEY_D, true}, 'E': {KEY_E, true}, 'F': {KEY_F, true},
 	'G': {KEY_G, true}, 'H': {KEY_H, true}, 'I': {KEY_I, true},
@@ -657,16 +666,16 @@ var charKeyMap = map[rune]keyInfo{
 	'Y': {KEY_Y, true}, 'Z': {KEY_Z, true},
 
 	// Digits
-	'1': {KEY_1, false}, '2': {KEY_2, false}, '3': {KEY_3, false},
-	'4': {KEY_4, false}, '5': {KEY_5, false}, '6': {KEY_6, false},
-	'7': {KEY_7, false}, '8': {KEY_8, false}, '9': {KEY_9, false},
-	'0': {KEY_0, false},
+	'0': {KEY_0, false}, '1': {KEY_1, false}, '2': {KEY_2, false},
+	'3': {KEY_3, false}, '4': {KEY_4, false}, '5': {KEY_5, false},
+	'6': {KEY_6, false}, '7': {KEY_7, false}, '8': {KEY_8, false},
+	'9': {KEY_9, false},
 
-	// Shifted digits → symbols
-	'!': {KEY_1, true}, '@': {KEY_2, true}, '#': {KEY_3, true},
-	'$': {KEY_4, true}, '%': {KEY_5, true}, '^': {KEY_6, true},
-	'&': {KEY_7, true}, '*': {KEY_8, true}, '(': {KEY_9, true},
-	')': {KEY_0, true},
+	// Shifted digits
+	')': {KEY_0, true}, '!': {KEY_1, true}, '@': {KEY_2, true},
+	'#': {KEY_3, true}, '$': {KEY_4, true}, '%': {KEY_5, true},
+	'^': {KEY_6, true}, '&': {KEY_7, true}, '*': {KEY_8, true},
+	'(': {KEY_9, true},
 
 	// Punctuation (unshifted)
 	'-': {KEY_MINUS, false}, '=': {KEY_EQUAL, false},
