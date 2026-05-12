@@ -4,8 +4,24 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"syscall"
 )
 
+func (k *RealKeyboard) Grab() error {
+	_, _, err := syscall.Syscall(SYS_IOCTL, k.dev.Fd(), uintptr(EVIOCGRAB), uintptr(1))
+	if err != 0 {
+		return fmt.Errorf("failed to grab device: %w", err)
+	}
+	return nil
+}
+
+func (k *RealKeyboard) Ungrab() error {
+	_, _, err := syscall.Syscall(SYS_IOCTL, k.dev.Fd(), uintptr(EVIOCGRAB), uintptr(0))
+	if err != 0 {
+		return fmt.Errorf("failed to grab device: %w", err)
+	}
+	return nil
+}
 func OpenKeyboard(path string) (*RealKeyboard, error) {
 	file, err := os.Open(path)
 	if err != nil {

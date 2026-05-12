@@ -166,6 +166,8 @@ const (
 	KEY_LEFTMETA   = 125
 	KEY_RIGHTMETA  = 126
 	KEY_COMPOSE    = 127
+
+	SYS_IOCTL = 16
 )
 
 // ── Argument types (shared by Press and Click) ────────────────────────────────
