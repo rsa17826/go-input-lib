@@ -75,6 +75,15 @@ func (k *RealKeyboard) KeyState(keyCode int) (int, error) {
 	}
 	return 0, nil
 }
+func (d *RealKeyboard) SendEvent(evType, code uint16, value int32) error {
+	ev := InputEvent{Type: evType, Code: code, Value: value}
+	return binary.Write(d.dev, binary.LittleEndian, ev)
+}
+
+func (d *RealKeyboard) Sync() error {
+	return d.SendEvent(EV_SYN, 0, 0)
+}
+
 func (k *RealKeyboard) GetPressedKeys() ([]uint16, error) {
 	// Create a buffer large enough for the bitmask (1 bit per key)
 	buffer := make([]byte, (KEY_MAX+7)/8)
