@@ -99,7 +99,7 @@ func WaitForDevice(selector string) string {
 // PickDevice listens on all input devices and prints the selector string for
 // the first one that receives a keypress. Use this to identify a device to
 // pass to FindDevice or WaitForDevice.
-func PickDevice() {
+func PickDevice() string {
 	entries, err := os.ReadDir("/dev/input/")
 	if err != nil {
 		panic(err)
@@ -143,4 +143,5 @@ func PickDevice() {
 	selector := <-found
 	fmt.Printf("\nDevice identified: %q\n", selector)
 	fmt.Println("Pass this string to WaitForDevice or FindDevice.")
+	return selector
 }
