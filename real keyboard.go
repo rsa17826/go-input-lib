@@ -30,6 +30,13 @@ func OpenKeyboard(path string) (*RealKeyboard, error) {
 	}
 	return &RealKeyboard{RealDev{dev: file}}, nil
 }
+func OpenKeyboardForWrite(path string) (*RealKeyboard, error) {
+	file, err := os.OpenFile(path, os.O_RDWR, 0600)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open device: %w", err)
+	}
+	return &RealKeyboard{RealDev{dev: file}}, nil
+}
 
 func (k *RealKeyboard) Close() error {
 	return k.dev.Close()
