@@ -10,7 +10,7 @@ import (
 // ── VirtualKeyboard ───────────────────────────────────────────────────────────
 
 // VirtualKeyboard is a uinput virtual keyboard device.
-type VirtualKeyboard struct{ virtualDev }
+type VirtualKeyboard struct{ VirtualDev }
 
 // CreateVirtualKeyboard creates a uinput virtual keyboard.
 // Pass block=true to open the fd in blocking mode (default: non-blocking).
@@ -34,7 +34,7 @@ func CreateVirtualKeyboard(name string, block ...bool) (*VirtualKeyboard, error)
 	}
 	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
 
-	return &VirtualKeyboard{virtualDev{fd}}, nil
+	return &VirtualKeyboard{VirtualDev{fd}}, nil
 }
 
 // Press sends a sequence of key events. Args can be any mix of RawKey,

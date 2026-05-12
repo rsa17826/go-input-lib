@@ -9,7 +9,7 @@ import (
 // ── VirtualMouse ──────────────────────────────────────────────────────────────
 
 // VirtualMouse is a uinput virtual mouse device.
-type VirtualMouse struct{ virtualDev }
+type VirtualMouse struct{ VirtualDev }
 
 // CreateVirtualMouse creates a uinput virtual mouse.
 // Pass block=true to open the fd in blocking mode (default: non-blocking).
@@ -38,7 +38,7 @@ func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
 	}
 	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
 
-	return &VirtualMouse{virtualDev{fd}}, nil
+	return &VirtualMouse{VirtualDev{fd}}, nil
 }
 
 // Click sends a sequence of button events. Args can be any mix of RawButton,

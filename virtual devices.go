@@ -12,17 +12,17 @@ import (
 // virtualDev is embedded in VirtualKeyboard and VirtualMouse to share the
 // underlying file handle and low-level send/sync logic.
 
-func (d *virtualDev) SendEvent(evType, code uint16, value int32) error {
+func (d *VirtualDev) SendEvent(evType, code uint16, value int32) error {
 	ev := InputEvent{Type: evType, Code: code, Value: value}
 	return binary.Write(d.dev, binary.LittleEndian, ev)
 }
 
-func (d *virtualDev) Sync() error {
+func (d *VirtualDev) Sync() error {
 	return d.SendEvent(EV_SYN, 0, 0)
 }
 
 // Close releases the uinput device.
-func (d *virtualDev) Close() error {
+func (d *VirtualDev) Close() error {
 	return d.dev.Close()
 }
 

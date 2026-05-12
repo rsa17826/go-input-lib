@@ -212,8 +212,18 @@ type DelayNow time.Duration
 func (DelayNow) isPressArg() {}
 func (DelayNow) isClickArg() {}
 
-type virtualDev struct {
+type VirtualDev struct {
 	dev *os.File
+}
+
+// ── real devices ───────────────────────────────────────────────────
+
+type RealDev struct {
+	dev *os.File
+}
+
+type RealKeyboard struct {
+	RealDev
 }
 
 // ── Character → keycode map ───────────────────────────────────────────────────
