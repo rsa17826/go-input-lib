@@ -30,21 +30,22 @@ func OpenKeyboard(path string) (*RealKeyboard, error) {
 	}
 	return &RealKeyboard{RealDev{dev: file}}, nil
 }
-func OpenKeyboardForWrite(path string) (*RealKeyboard, error) {
-	file, err := os.OpenFile(path, os.O_RDWR, 0600)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open device: %w", err)
-	}
-	return &RealKeyboard{RealDev{dev: file}}, nil
-}
+
+// func OpenKeyboardForWrite(path string) (*RealKeyboard, error) {
+// 	file, err := os.OpenFile(path, os.O_RDWR, 0600)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("failed to open device: %w", err)
+// 	}
+// 	return &RealKeyboard{RealDev{dev: file}}, nil
+// }
 
 func (k *RealKeyboard) Close() error {
 	return k.dev.Close()
 }
 
-func (k *RealKeyboard) Write(data []byte) (int, error) {
-	return k.dev.Write(data)
-}
+// func (k *RealKeyboard) Write(data []byte) (int, error) {
+// 	return k.dev.Write(data)
+// }
 
 func (k *RealKeyboard) ReadNextInput() (InputEvent, error) {
 	var ev InputEvent
@@ -82,14 +83,15 @@ func (k *RealKeyboard) KeyState(keyCode int) (int, error) {
 	}
 	return 0, nil
 }
-func (d *RealKeyboard) SendEvent(evType, code uint16, value int32) error {
-	ev := InputEvent{Type: evType, Code: code, Value: value}
-	return binary.Write(d.dev, binary.LittleEndian, ev)
-}
 
-func (d *RealKeyboard) Sync() error {
-	return d.SendEvent(EV_SYN, 0, 0)
-}
+// func (d *RealKeyboard) SendEvent(evType, code uint16, value int32) error {
+// 	ev := InputEvent{Type: evType, Code: code, Value: value}
+// 	return binary.Write(d.dev, binary.LittleEndian, ev)
+// }
+
+// func (d *RealKeyboard) Sync() error {
+// 	return d.SendEvent(EV_SYN, 0, 0)
+// }
 
 func (k *RealKeyboard) GetPressedKeys() ([]uint16, error) {
 	// Create a buffer large enough for the bitmask (1 bit per key)
