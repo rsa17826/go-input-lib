@@ -167,7 +167,8 @@ const (
 	KEY_RIGHTMETA  = 126
 	KEY_COMPOSE    = 127
 
-	SYS_IOCTL = 16
+	EVIOCGKEY = 0x80404518 // ioctl code to get key state
+	KEY_MAX   = 0x2ff
 )
 
 // ── Argument types (shared by Press and Click) ────────────────────────────────
