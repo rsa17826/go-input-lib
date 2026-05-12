@@ -67,44 +67,44 @@ func (m *VirtualMouse) Click(args ...ClickArg) error {
 
 // Move moves the mouse cursor by dx, dy relative to its current position.
 func (m *VirtualMouse) Move(dx, dy int32) error {
-	if err := m.sendEvent(EV_REL, REL_X, dx); err != nil {
+	if err := m.SendEvent(EV_REL, REL_X, dx); err != nil {
 		return err
 	}
-	if err := m.sendEvent(EV_REL, REL_Y, dy); err != nil {
+	if err := m.SendEvent(EV_REL, REL_Y, dy); err != nil {
 		return err
 	}
-	return m.sync()
+	return m.Sync()
 }
 
 // Scroll scrolls vertically by clicks (positive = up) and horizontally by hClicks.
 func (m *VirtualMouse) Scroll(clicks, hClicks int32) error {
 	if clicks != 0 {
-		if err := m.sendEvent(EV_REL, REL_WHEEL, clicks); err != nil {
+		if err := m.SendEvent(EV_REL, REL_WHEEL, clicks); err != nil {
 			return err
 		}
 	}
 	if hClicks != 0 {
-		if err := m.sendEvent(EV_REL, REL_HWHEEL, hClicks); err != nil {
+		if err := m.SendEvent(EV_REL, REL_HWHEEL, hClicks); err != nil {
 			return err
 		}
 	}
-	return m.sync()
+	return m.Sync()
 }
 
 func (m *VirtualMouse) tapButton(code uint16, holdFor, afterDelay time.Duration) error {
-	if err := m.sendEvent(EV_KEY, code, 1); err != nil {
+	if err := m.SendEvent(EV_KEY, code, 1); err != nil {
 		return err
 	}
-	if err := m.sync(); err != nil {
+	if err := m.Sync(); err != nil {
 		return err
 	}
 	if holdFor > 0 {
 		time.Sleep(holdFor)
 	}
-	if err := m.sendEvent(EV_KEY, code, 0); err != nil {
+	if err := m.SendEvent(EV_KEY, code, 0); err != nil {
 		return err
 	}
-	if err := m.sync(); err != nil {
+	if err := m.Sync(); err != nil {
 		return err
 	}
 	if afterDelay > 0 {

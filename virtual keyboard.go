@@ -52,7 +52,7 @@ func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
 	for _, arg := range args {
 		switch v := arg.(type) {
 		case RawKey:
-			if err := kbd.tapKey(uint16(v), holdFor, afterDelay); err != nil {
+			if err := kbd.TapKey(uint16(v), holdFor, afterDelay); err != nil {
 				return err
 			}
 		case KeyString:
@@ -61,7 +61,7 @@ func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
 				if !ok {
 					return fmt.Errorf("press: no keycode mapping for %q", ch)
 				}
-				if err := kbd.tapKeyMaybeShift(info.code, info.shift, holdFor, afterDelay); err != nil {
+				if err := kbd.TapKeyMaybeShift(info.code, info.shift, holdFor, afterDelay); err != nil {
 					return err
 				}
 			}
@@ -75,20 +75,20 @@ func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
 	return nil
 }
 
-func (kbd *VirtualKeyboard) tapKey(code uint16, holdFor, afterDelay time.Duration) error {
-	if err := kbd.sendEvent(EV_KEY, code, 1); err != nil {
+func (kbd *VirtualKeyboard) TapKey(code uint16, holdFor, afterDelay time.Duration) error {
+	if err := kbd.SendEvent(EV_KEY, code, 1); err != nil {
 		return err
 	}
-	if err := kbd.sync(); err != nil {
+	if err := kbd.Sync(); err != nil {
 		return err
 	}
 	if holdFor > 0 {
 		time.Sleep(holdFor)
 	}
-	if err := kbd.sendEvent(EV_KEY, code, 0); err != nil {
+	if err := kbd.SendEvent(EV_KEY, code, 0); err != nil {
 		return err
 	}
-	if err := kbd.sync(); err != nil {
+	if err := kbd.Sync(); err != nil {
 		return err
 	}
 	if afterDelay > 0 {
@@ -97,23 +97,23 @@ func (kbd *VirtualKeyboard) tapKey(code uint16, holdFor, afterDelay time.Duratio
 	return nil
 }
 
-func (kbd *VirtualKeyboard) tapKeyMaybeShift(code uint16, shift bool, holdFor, afterDelay time.Duration) error {
+func (kbd *VirtualKeyboard) TapKeyMaybeShift(code uint16, shift bool, holdFor, afterDelay time.Duration) error {
 	if shift {
-		if err := kbd.sendEvent(EV_KEY, KEY_LEFTSHIFT, 1); err != nil {
+		if err := kbd.SendEvent(EV_KEY, KEY_LEFTSHIFT, 1); err != nil {
 			return err
 		}
-		if err := kbd.sync(); err != nil {
+		if err := kbd.Sync(); err != nil {
 			return err
 		}
 	}
-	if err := kbd.tapKey(code, holdFor, 0); err != nil {
+	if err := kbd.TapKey(code, holdFor, 0); err != nil {
 		return err
 	}
 	if shift {
-		if err := kbd.sendEvent(EV_KEY, KEY_LEFTSHIFT, 0); err != nil {
+		if err := kbd.SendEvent(EV_KEY, KEY_LEFTSHIFT, 0); err != nil {
 			return err
 		}
-		if err := kbd.sync(); err != nil {
+		if err := kbd.Sync(); err != nil {
 			return err
 		}
 	}
