@@ -229,6 +229,9 @@ type RealDev struct {
 type RealKeyboard struct {
 	RealDev
 }
+type RealMouse struct {
+	RealDev
+}
 
 // ── Character → keycode map ───────────────────────────────────────────────────
 
