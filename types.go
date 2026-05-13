@@ -162,6 +162,7 @@ const (
 	KEY_PAGEDOWN   = 109
 	KEY_INSERT     = 110
 	KEY_DELETE     = 111
+	KEY_KPEQUAL    = 117
 	KEY_PAUSE      = 119
 	KEY_LEFTMETA   = 125
 	KEY_RIGHTMETA  = 126
@@ -254,6 +255,19 @@ var allKeyCodes = map[uint16]struct{}{
 	KEY_RIGHTALT: {}, KEY_HOME: {}, KEY_UP: {}, KEY_PAGEUP: {}, KEY_LEFT: {},
 	KEY_RIGHT: {}, KEY_END: {}, KEY_DOWN: {}, KEY_PAGEDOWN: {}, KEY_INSERT: {},
 	KEY_DELETE: {}, KEY_LEFTMETA: {}, KEY_RIGHTMETA: {},
+	// Numpad Numbers
+	KEY_KP0: {}, KEY_KP1: {}, KEY_KP2: {}, KEY_KP3: {}, KEY_KP4: {},
+	KEY_KP5: {}, KEY_KP6: {}, KEY_KP7: {}, KEY_KP8: {}, KEY_KP9: {},
+
+	// Numpad Operators & Misc
+	KEY_KPDOT:      {}, // Decimal point
+	KEY_KPSLASH:    {}, // Divide
+	KEY_KPASTERISK: {}, // Multiply
+	KEY_KPMINUS:    {}, // Subtract
+	KEY_KPPLUS:     {}, // Add
+	KEY_KPENTER:    {}, // Numpad Enter
+	KEY_KPEQUAL:    {}, // Used in Mac/extended layouts
+	KEY_NUMLOCK:    {}, // Essential for state sync
 }
 
 // charKeyMap maps every typeable rune to its keycode and whether Shift is needed.
