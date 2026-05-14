@@ -1,2 +1,4 @@
+github.com/rsa17826/go-arg-lib v0.0.48 h1:JPrAzR3z2LpRHjNfIab3Endoz+Jdm9Kwb048D/nr74k=
+github.com/rsa17826/go-arg-lib v0.0.48/go.mod h1:eP/bXinIXD6bZWBMqk9eZJfkkKUcl66j0uuz1amrsdU=
 golang.org/x/sys v0.44.0 h1:ildZl3J4uzeKP07r2F++Op7E9B29JRUy+a27EibtBTQ=
 golang.org/x/sys v0.44.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
