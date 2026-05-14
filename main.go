@@ -21,6 +21,7 @@ func init() {
 }
 func main() {
 	argparse.EnsureParsed()
+	println(getDeviceId, "getDeviceId")
 	if getDeviceId {
 		GetDeviceToUser()
 	}
