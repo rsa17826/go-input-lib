@@ -17,13 +17,11 @@ var getDeviceId bool
 
 func init() {
 	argparse.ParseArgs([]argparse.ArgumentData{{Keys: []string{"selectDevice"}, AfterCount: 0, Target: &getDeviceId, Description: "interactive device selection to get device id", VarArgs: false, AllowDupes: false}})
-	go func() {
-		argparse.EnsureParsed() // called from goroutine, not goroutine 1 — waitForInits resolves
-		println(getDeviceId, "getDeviceId")
-		if getDeviceId {
-			GetDeviceToUser()
-		}
-	}()
+	argparse.EnsureParsed()
+	println(getDeviceId, "getDeviceId")
+	if getDeviceId {
+		GetDeviceToUser()
+	}
 }
 
 func GetDeviceToUser() string {
