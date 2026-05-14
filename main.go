@@ -16,7 +16,9 @@ import (
 var getDeviceId bool
 
 func init() {
+	println("input1")
 	argparse.ParseArgs([]argparse.ArgumentData{{Keys: []string{"selectDevice"}, AfterCount: 0, Target: &getDeviceId, Description: "interactive device selection to get device id", VarArgs: false, AllowDupes: false}})
+	println("input2")
 	println(getDeviceId, "getDeviceId")
 	if getDeviceId {
 		GetDeviceToUser()
