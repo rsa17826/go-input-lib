@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -17,6 +18,8 @@ var getDeviceId bool
 
 func init() {
 	argparse.ParseArgs([]argparse.ArgumentData{{Keys: []string{"selectDevice"}, AfterCount: 0, Target: &getDeviceId, Description: "interactive device selection to get device id", VarArgs: false, AllowDupes: false}})
+	var once sync.Once
+	once.Do(main)
 }
 func main() {
 	argparse.EnsureParsed()
