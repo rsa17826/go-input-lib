@@ -12,5 +12,7 @@ github.com/rsa17826/go-arg-lib v0.0.66 h1:vUiMw5NMKB6yKskkWF9I155OZb7T3h/W2M/7qk
 github.com/rsa17826/go-arg-lib v0.0.66/go.mod h1:eP/bXinIXD6bZWBMqk9eZJfkkKUcl66j0uuz1amrsdU=
 github.com/rsa17826/go-arg-lib v0.0.67 h1:O2sZzJZFhJ2gphkg5XV+miJjBKZEFCtAZEEATPZAvMY=
 github.com/rsa17826/go-arg-lib v0.0.67/go.mod h1:eP/bXinIXD6bZWBMqk9eZJfkkKUcl66j0uuz1amrsdU=
+github.com/rsa17826/go-arg-lib v0.0.69 h1:G7TYCqUIw3z0QO2v5NHG4VDgY+5JR2nYInGDgxkoFdY=
+github.com/rsa17826/go-arg-lib v0.0.69/go.mod h1:eP/bXinIXD6bZWBMqk9eZJfkkKUcl66j0uuz1amrsdU=
 golang.org/x/sys v0.44.0 h1:ildZl3J4uzeKP07r2F++Op7E9B29JRUy+a27EibtBTQ=
 golang.org/x/sys v0.44.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
