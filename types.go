@@ -271,6 +271,9 @@ var allKeyCodes = map[uint16]struct{}{
 	KEY_KPENTER:    {}, // Numpad Enter
 	KEY_KPEQUAL:    {}, // Used in Mac/extended layouts
 	KEY_NUMLOCK:    {}, // Essential for state sync
+
+	// print screen
+	KEY_SYSRQ: {},
 }
 
 // charKeyMap maps every typeable rune to its keycode and whether Shift is needed.
