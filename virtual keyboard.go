@@ -57,7 +57,7 @@ func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
 			}
 		case KeyString:
 			for _, ch := range string(v) {
-				info, ok := charKeyMap[ch]
+				info, ok := CharKeyMap[ch]
 				if !ok {
 					return fmt.Errorf("press: no keycode mapping for %q", ch)
 				}

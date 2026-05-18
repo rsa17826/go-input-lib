@@ -276,8 +276,8 @@ var allKeyCodes = map[uint16]struct{}{
 	KEY_SYSRQ: {},
 }
 
-// charKeyMap maps every typeable rune to its keycode and whether Shift is needed.
-var charKeyMap = map[rune]keyInfo{
+// CharKeyMap maps every typeable rune to its keycode and whether Shift is needed.
+var CharKeyMap = map[rune]keyInfo{
 	// Lowercase
 	'a': {KEY_A, false}, 'b': {KEY_B, false}, 'c': {KEY_C, false},
 	'd': {KEY_D, false}, 'e': {KEY_E, false}, 'f': {KEY_F, false},
