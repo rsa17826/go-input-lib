@@ -236,8 +236,8 @@ type RealMouse struct {
 // ── Character → keycode map ───────────────────────────────────────────────────
 
 type keyInfo struct {
-	code  uint16
-	shift bool
+	Code  uint16
+	Shift bool
 }
 
 // allKeyCodes is every keycode registered with uinput on keyboard creation.

@@ -61,7 +61,7 @@ func (kbd *VirtualKeyboard) Press(args ...PressArg) error {
 				if !ok {
 					return fmt.Errorf("press: no keycode mapping for %q", ch)
 				}
-				if err := kbd.TapKeyMaybeShift(info.code, info.shift, holdFor, afterDelay); err != nil {
+				if err := kbd.TapKeyMaybeShift(info.Code, info.Shift, holdFor, afterDelay); err != nil {
 					return err
 				}
 			}
