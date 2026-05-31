@@ -3,6 +3,7 @@ package input
 import (
 	"encoding/binary"
 	"time"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -38,6 +39,19 @@ func WithAbsRange(maxX, maxY int32) MouseOption {
 	return func(c *mouseConfig) { c.maxX = maxX; c.maxY = maxY }
 }
 
+// Helper function to handle pointer-based ioctls
+func ioctlSetPointer(fd int, req uint, ptr unsafe.Pointer) error {
+	_, _, errno := unix.Syscall(
+		unix.SYS_IOCTL,
+		uintptr(fd),
+		uintptr(req),
+		uintptr(ptr),
+	)
+	if errno != 0 {
+		return errno
+	}
+	return nil
+}
 func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error) {
 	cfg := defaultMouseConfig()
 	for _, o := range opts {
@@ -63,6 +77,34 @@ func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error)
 	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_ABS)
 	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_X)
 	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_Y)
+
+	// UI_ABS_SETUP ioctl value
+	const UI_ABS_SETUP = 0x401c5504
+
+	type uinputAbsSetup struct {
+		Code uint16
+		_    uint16 // Padding
+		Val  int32
+		Min  int32
+		Max  int32
+		Fuzz int32
+		Flat int32
+		Res  int32
+	}
+
+	// Setup X Axis limits using our unsafe pointer helper
+	absX := uinputAbsSetup{Code: uint16(ABS_X), Min: 0, Max: cfg.maxX}
+	if err := ioctlSetPointer(ifd, UI_ABS_SETUP, unsafe.Pointer(&absX)); err != nil {
+		fd.Close()
+		return nil, err
+	}
+
+	// Setup Y Axis limits using our unsafe pointer helper
+	absY := uinputAbsSetup{Code: uint16(ABS_Y), Min: 0, Max: cfg.maxY}
+	if err := ioctlSetPointer(ifd, UI_ABS_SETUP, unsafe.Pointer(&absY)); err != nil {
+		fd.Close()
+		return nil, err
+	}
 
 	var setup uinputUserDev
 	copy(setup.Name[:], name)
