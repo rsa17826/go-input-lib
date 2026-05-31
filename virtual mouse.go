@@ -1,6 +1,7 @@
 package input
 
 import (
+	"encoding/binary"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -62,7 +63,13 @@ func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error)
 	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_ABS)
 	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_X)
 	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_Y)
-	if err := writeUinputSetup(fd, name); err != nil {
+
+	var setup uinputUserDev
+	copy(setup.Name[:], name)
+	setup.ID = BUS_USB
+	setup.AbsMax[ABS_X] = cfg.maxX
+	setup.AbsMax[ABS_Y] = cfg.maxY
+	if err := binary.Write(fd, binary.LittleEndian, setup); err != nil {
 		fd.Close()
 		return nil, err
 	}
