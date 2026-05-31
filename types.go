@@ -36,12 +36,17 @@ const (
 	EV_SYN = 0x00
 	EV_KEY = 0x01
 	EV_REL = 0x02
+	EV_ABS = 0x03
 
 	// Relative axes
 	REL_X      = 0x00
 	REL_Y      = 0x01
 	REL_HWHEEL = 0x06
 	REL_WHEEL  = 0x08
+
+	// Absolute axes
+	ABS_X = 0x00
+	ABS_Y = 0x01
 
 	// Mouse buttons
 	BTN_LEFT   = 0x110
@@ -52,6 +57,7 @@ const (
 	UI_SET_EVBIT  = 0x40045564
 	UI_SET_KEYBIT = 0x40045565
 	UI_SET_RELBIT = 0x40045566
+	UI_SET_ABSBIT = 0x40045567
 	UI_DEV_CREATE = 0x5501
 
 	// Device ioctls

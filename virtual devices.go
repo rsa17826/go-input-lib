@@ -3,6 +3,7 @@ package input
 import (
 	"encoding/binary"
 	"os"
+	"time"
 
 	"golang.org/x/sys/unix"
 )
@@ -39,4 +40,28 @@ func writeUinputSetup(fd *os.File, name string) error {
 	copy(setup.Name[:], name)
 	setup.ID = BUS_USB
 	return binary.Write(fd, binary.LittleEndian, setup)
+}
+
+// TapButton sends a button-down, optional hold, button-up, optional delay.
+// Used by both VirtualMouse and VirtualAbsMouse.
+func (d *VirtualDev) TapButton(code uint16, holdFor, afterDelay time.Duration) error {
+	if err := d.SendEvent(EV_KEY, code, 1); err != nil {
+		return err
+	}
+	if err := d.Sync(); err != nil {
+		return err
+	}
+	if holdFor > 0 {
+		time.Sleep(holdFor)
+	}
+	if err := d.SendEvent(EV_KEY, code, 0); err != nil {
+		return err
+	}
+	if err := d.Sync(); err != nil {
+		return err
+	}
+	if afterDelay > 0 {
+		time.Sleep(afterDelay)
+	}
+	return nil
 }

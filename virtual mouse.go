@@ -9,14 +9,41 @@ import (
 // ── VirtualMouse ──────────────────────────────────────────────────────────────
 
 // VirtualMouse is a uinput virtual mouse device.
-type VirtualMouse struct{ VirtualDev }
+type VirtualMouse struct {
+	VirtualDev
+	MaxX, MaxY int32
+}
 
 // CreateVirtualMouse creates a uinput virtual mouse.
 // Pass block=true to open the fd in blocking mode (default: non-blocking).
-func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
-	blocking := len(block) > 0 && block[0]
+// MouseOption is a functional option for CreateVirtualMouse.
+type MouseOption func(*mouseConfig)
 
-	fd, err := openUinput(blocking)
+type mouseConfig struct {
+	blocking bool
+	maxX     int32
+	maxY     int32
+}
+
+func defaultMouseConfig() mouseConfig {
+	return mouseConfig{maxX: 1920, maxY: 1080}
+}
+
+// Blocking opens the uinput fd in blocking mode.
+func Blocking() MouseOption { return func(c *mouseConfig) { c.blocking = true } }
+
+// WithAbsRange sets the coordinate space for absolute positioning.
+func WithAbsRange(maxX, maxY int32) MouseOption {
+	return func(c *mouseConfig) { c.maxX = maxX; c.maxY = maxY }
+}
+
+func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error) {
+	cfg := defaultMouseConfig()
+	for _, o := range opts {
+		o(&cfg)
+	}
+
+	fd, err := openUinput(cfg.blocking)
 	if err != nil {
 		return nil, err
 	}
@@ -32,13 +59,16 @@ func CreateVirtualMouse(name string, block ...bool) (*VirtualMouse, error) {
 	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_WHEEL)
 	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_HWHEEL)
 
+	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_ABS)
+	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_X)
+	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_Y)
 	if err := writeUinputSetup(fd, name); err != nil {
 		fd.Close()
 		return nil, err
 	}
 	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
 
-	return &VirtualMouse{VirtualDev{fd}}, nil
+	return &VirtualMouse{VirtualDev: VirtualDev{fd}, MaxX: cfg.maxX, MaxY: cfg.maxY}, nil
 }
 
 // Click sends a sequence of button events. Args can be any mix of RawButton,
@@ -63,6 +93,18 @@ func (m *VirtualMouse) Click(args ...ClickArg) error {
 		}
 	}
 	return nil
+}
+
+func (m *VirtualMouse) MoveTo(x, y int32) error {
+	x = clamp(x, 0, m.MaxX)
+	y = clamp(y, 0, m.MaxY)
+	if err := m.SendEvent(EV_ABS, ABS_X, x); err != nil {
+		return err
+	}
+	if err := m.SendEvent(EV_ABS, ABS_Y, y); err != nil {
+		return err
+	}
+	return m.Sync()
 }
 
 // Move moves the mouse cursor by dx, dy relative to its current position.
@@ -92,23 +134,5 @@ func (m *VirtualMouse) Scroll(clicks, hClicks int32) error {
 }
 
 func (m *VirtualMouse) tapButton(code uint16, holdFor, afterDelay time.Duration) error {
-	if err := m.SendEvent(EV_KEY, code, 1); err != nil {
-		return err
-	}
-	if err := m.Sync(); err != nil {
-		return err
-	}
-	if holdFor > 0 {
-		time.Sleep(holdFor)
-	}
-	if err := m.SendEvent(EV_KEY, code, 0); err != nil {
-		return err
-	}
-	if err := m.Sync(); err != nil {
-		return err
-	}
-	if afterDelay > 0 {
-		time.Sleep(afterDelay)
-	}
-	return nil
+	return m.TapButton(code, holdFor, afterDelay)
 }
