@@ -1,7 +1,6 @@
 package input
 
 import (
-	"encoding/binary"
 	"time"
 	"unsafe"
 
@@ -39,7 +38,6 @@ func WithAbsRange(maxX, maxY int32) MouseOption {
 	return func(c *mouseConfig) { c.maxX = maxX; c.maxY = maxY }
 }
 
-// Helper function to handle pointer-based ioctls
 func ioctlSetPointer(fd int, req uint, ptr unsafe.Pointer) error {
 	_, _, errno := unix.Syscall(
 		unix.SYS_IOCTL,
@@ -52,6 +50,7 @@ func ioctlSetPointer(fd int, req uint, ptr unsafe.Pointer) error {
 	}
 	return nil
 }
+
 func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error) {
 	cfg := defaultMouseConfig()
 	for _, o := range opts {
@@ -64,10 +63,13 @@ func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error)
 	}
 
 	ifd := int(fd.Fd())
+
+	// 1. Register basic capability groups
 	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_KEY)
 	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_LEFT)
 	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_RIGHT)
 	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_MIDDLE)
+
 	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_REL)
 	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_X)
 	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_Y)
@@ -78,44 +80,74 @@ func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error)
 	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_X)
 	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_Y)
 
-	// UI_ABS_SETUP ioctl value
-	const UI_ABS_SETUP = 0x401c5504
+	// Modern Linux uinput ioctl definitions
+	const (
+		UI_DEV_SETUP = 0x405c5503
+		UI_ABS_SETUP = 0x401c5504
+	)
 
-	type uinputAbsSetup struct {
-		Code uint16
-		_    uint16 // Padding
-		Val  int32
-		Min  int32
-		Max  int32
-		Fuzz int32
-		Flat int32
-		Res  int32
+	type inputId struct {
+		Bustype uint16
+		Vendor  uint16
+		Product uint16
+		Version uint16
 	}
 
-	// Setup X Axis limits using our unsafe pointer helper
-	absX := uinputAbsSetup{Code: uint16(ABS_X), Min: 0, Max: cfg.maxX}
+	type uinputSetup struct {
+		ID           inputId
+		Name         [80]byte
+		FfEffectsMax uint32
+	}
+
+	type inputAbsinfo struct {
+		Value      int32
+		Minimum    int32
+		Maximum    int32
+		Fuzz       int32
+		Flat       int32
+		Resolution int32
+	}
+
+	type uinputAbsSetup struct {
+		Code    uint16
+		_       uint16 // Padding
+		Absinfo inputAbsinfo
+	}
+
+	// 2. Configure Absolute Ranges using modern UI_ABS_SETUP
+	absX := uinputAbsSetup{
+		Code:    uint16(ABS_X),
+		Absinfo: inputAbsinfo{Minimum: 0, Maximum: cfg.maxX},
+	}
 	if err := ioctlSetPointer(ifd, UI_ABS_SETUP, unsafe.Pointer(&absX)); err != nil {
 		fd.Close()
 		return nil, err
 	}
 
-	// Setup Y Axis limits using our unsafe pointer helper
-	absY := uinputAbsSetup{Code: uint16(ABS_Y), Min: 0, Max: cfg.maxY}
+	absY := uinputAbsSetup{
+		Code:    uint16(ABS_Y),
+		Absinfo: inputAbsinfo{Minimum: 0, Maximum: cfg.maxY},
+	}
 	if err := ioctlSetPointer(ifd, UI_ABS_SETUP, unsafe.Pointer(&absY)); err != nil {
 		fd.Close()
 		return nil, err
 	}
 
-	var setup uinputUserDev
-	copy(setup.Name[:], name)
-	setup.ID = BUS_USB
-	setup.AbsMax[ABS_X] = cfg.maxX
-	setup.AbsMax[ABS_Y] = cfg.maxY
-	if err := binary.Write(fd, binary.LittleEndian, setup); err != nil {
+	// 3. Setup device identity using modern UI_DEV_SETUP instead of binary.Write
+	var devSetup uinputSetup
+	devSetup.ID = inputId{Bustype: BUS_USB}
+	copy(devSetup.Name[:79], name)
+
+	if err := ioctlSetPointer(ifd, UI_DEV_SETUP, unsafe.Pointer(&devSetup)); err != nil {
 		fd.Close()
 		return nil, err
 	}
-	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
+
+	// 4. Finally create the device node
+	if err := unix.IoctlSetInt(ifd, UI_DEV_CREATE, 0); err != nil {
+		fd.Close()
+		return nil, err
+	}
 
 	return &VirtualMouse{VirtualDev: VirtualDev{fd}, MaxX: cfg.maxX, MaxY: cfg.maxY}, nil
 }
