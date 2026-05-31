@@ -136,3 +136,13 @@ func (m *VirtualMouse) Scroll(clicks, hClicks int32) error {
 func (m *VirtualMouse) tapButton(code uint16, holdFor, afterDelay time.Duration) error {
 	return m.TapButton(code, holdFor, afterDelay)
 }
+
+func clamp(v, lo, hi int32) int32 {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
