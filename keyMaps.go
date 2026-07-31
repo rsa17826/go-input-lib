@@ -29,6 +29,10 @@ var StringToKey = map[string]uint16{
 	"f11": KEY_F11, "f12": KEY_F12, "f13": KEY_F13, "f14": KEY_F14, "f15": KEY_F15,
 	"f16": KEY_F16, "f17": KEY_F17, "f18": KEY_F18, "f19": KEY_F19, "f20": KEY_F20,
 	"f21": KEY_F21, "f22": KEY_F22, "f23": KEY_F23, "f24": KEY_F24,
+	//
+	"lbutton": BTN_LEFT,
+	"rbutton": BTN_RIGHT,
+	"mbutton": BTN_MIDDLE,
 }
 var KeyToString = map[uint16]string{
 	KEY_ESC: "esc", KEY_TAB: "tab", KEY_ENTER: "enter",
@@ -54,4 +58,8 @@ var KeyToString = map[uint16]string{
 	KEY_F11: "f11", KEY_F12: "f12", KEY_F13: "f13", KEY_F14: "f14", KEY_F15: "f15",
 	KEY_F16: "f16", KEY_F17: "f17", KEY_F18: "f18", KEY_F19: "f19", KEY_F20: "f20",
 	KEY_F21: "f21", KEY_F22: "f22", KEY_F23: "f23", KEY_F24: "f24",
+	//
+	BTN_LEFT:   "lbutton",
+	BTN_RIGHT:  "rbutton",
+	BTN_MIDDLE: "mbutton",
 }
