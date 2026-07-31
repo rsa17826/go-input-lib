@@ -87,4 +87,15 @@ var KeyToString = map[uint16]string{
 	BTN_LEFT:   "lbutton",
 	BTN_RIGHT:  "rbutton",
 	BTN_MIDDLE: "mbutton",
+	//
+	KEY_APOSTROPHE: "'",
+	KEY_GRAVE:      "`",
+	KEY_BACKSLASH:  "\\",
+	KEY_COMMA:      ",",
+	KEY_COMPOSE:    "compose",
+	KEY_DOT:        ".",
+	KEY_EQUAL:      "=",
+	KEY_MINUS:      "-",
+	KEY_SEMICOLON:  ";",
+	KEY_SLASH:      "/",
 }
