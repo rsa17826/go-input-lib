@@ -22,8 +22,11 @@ var StringToKey = map[string]uint16{
 	";":            KEY_SEMICOLON,
 	"/":            KEY_SLASH,
 	"forwardshasl": KEY_SLASH,
+	"menu":         KEY_COMPOSE,
+	"apps":         KEY_COMPOSE,
 	//
-	"esc": KEY_ESC, "escape": KEY_ESC, "tab": KEY_TAB, "enter": KEY_ENTER, "\\n": KEY_ENTER, "\n": KEY_ENTER,
+	"esc": KEY_ESC, "escape": KEY_ESC, "tab": KEY_TAB, "enter": KEY_ENTER, "return": KEY_ENTER, "\\n": KEY_ENTER, "\n": KEY_ENTER,
+	"[": KEY_LEFTBRACE, "]": KEY_RIGHTBRACE,
 	"\\b": KEY_BACKSPACE, "\b": KEY_BACKSPACE, "bs": KEY_BACKSPACE, "backspace": KEY_BACKSPACE, "spc": KEY_SPACE, "space": KEY_SPACE,
 	"capslock": KEY_CAPSLOCK, "numlock": KEY_NUMLOCK, "scrolllock": KEY_SCROLLLOCK,
 	"ctrl": KEY_LEFTCTRL, "lctrl": KEY_LEFTCTRL, "rctrl": KEY_RIGHTCTRL, "<ctrl": KEY_LEFTCTRL, ">ctrl": KEY_RIGHTCTRL,
@@ -39,9 +42,9 @@ var StringToKey = map[string]uint16{
 	//
 	"home": KEY_HOME, "end": KEY_END, "ins": KEY_INSERT, "insert": KEY_INSERT,
 	"del": KEY_DELETE, "delete": KEY_DELETE,
-	"pgup": KEY_PAGEUP, "pageup": KEY_PAGEUP, "pgdown": KEY_PAGEDOWN, "pagedown": KEY_PAGEDOWN,
+	"pgup": KEY_PAGEUP, "pageup": KEY_PAGEUP, "pgdown": KEY_PAGEDOWN, "pgdn": KEY_PAGEDOWN, "pagedown": KEY_PAGEDOWN,
 	"up": KEY_UP, "down": KEY_DOWN, "left": KEY_LEFT, "right": KEY_RIGHT,
-	"pause": KEY_PAUSE, "sysrq": KEY_SYSRQ, "printscreen": KEY_SYSRQ,
+	"pause": KEY_PAUSE, "sysrq": KEY_SYSRQ, "printscreen": KEY_SYSRQ, "prtsc": KEY_SYSRQ, "prtscn": KEY_SYSRQ, "printscrn": KEY_SYSRQ,
 	"kp0": KEY_KP0, "kp1": KEY_KP1, "kp2": KEY_KP2, "kp3": KEY_KP3, "kp4": KEY_KP4,
 	"kp5": KEY_KP5, "kp6": KEY_KP6, "kp7": KEY_KP7, "kp8": KEY_KP8, "kp9": KEY_KP9,
 	"kp.": KEY_KPDOT, "kpdot": KEY_KPDOT, "kp/": KEY_KPSLASH, "kpslash": KEY_KPSLASH, "kp*": KEY_KPASTERISK, "kpasterisk": KEY_KPASTERISK, "kpstar": KEY_KPASTERISK,
@@ -55,8 +58,8 @@ var StringToKey = map[string]uint16{
 	"lbutton": BTN_LEFT, "rbutton": BTN_RIGHT, "mbutton": BTN_MIDDLE,
 	"leftbutton": BTN_LEFT, "rightbutton": BTN_RIGHT, "middlebutton": BTN_MIDDLE,
 	//
-	"apostrophe": KEY_APOSTROPHE, "backslash": KEY_BACKSLASH, "comma": KEY_COMMA, "dot": KEY_DOT, "equal": KEY_EQUAL, "leftbrace": KEY_LEFTBRACE, "rightbrace": KEY_RIGHTBRACE, "max": KEY_MAX, "semicolon": KEY_SEMICOLON, "slash": KEY_SLASH, "leftctrl": KEY_LEFTCTRL, "rightctrl": KEY_RIGHTCTRL, "leftshift": KEY_LEFTSHIFT, "rightshift": KEY_RIGHTSHIFT, "leftalt": KEY_LEFTALT, "rightalt": KEY_RIGHTALT, "leftmeta": KEY_LEFTMETA, "rightmeta": KEY_RIGHTMETA,
-	"key_apostrophe": KEY_APOSTROPHE, "key_grave": KEY_GRAVE, "key_backslash": KEY_BACKSLASH, "key_comma": KEY_COMMA, "key_compose": KEY_COMPOSE, "key_dot": KEY_DOT, "key_equal": KEY_EQUAL, "key_leftbrace": KEY_LEFTBRACE, "key_rightbrace": KEY_RIGHTBRACE, "key_max": KEY_MAX, "key_minus": KEY_MINUS, "key_semicolon": KEY_SEMICOLON, "key_slash": KEY_SLASH, "key_esc": KEY_ESC, "key_tab": KEY_TAB, "key_enter": KEY_ENTER, "key_backspace": KEY_BACKSPACE, "key_space": KEY_SPACE, "key_capslock": KEY_CAPSLOCK, "key_numlock": KEY_NUMLOCK, "key_scrolllock": KEY_SCROLLLOCK, "key_leftctrl": KEY_LEFTCTRL, "key_rightctrl": KEY_RIGHTCTRL, "key_leftshift": KEY_LEFTSHIFT, "key_rightshift": KEY_RIGHTSHIFT, "key_leftalt": KEY_LEFTALT, "key_rightalt": KEY_RIGHTALT, "key_leftmeta": KEY_LEFTMETA, "key_rightmeta": KEY_RIGHTMETA, "key_home": KEY_HOME, "key_end": KEY_END, "key_insert": KEY_INSERT, "key_delete": KEY_DELETE, "key_pageup": KEY_PAGEUP, "key_pagedown": KEY_PAGEDOWN, "key_up": KEY_UP, "key_down": KEY_DOWN, "key_left": KEY_LEFT, "key_right": KEY_RIGHT, "key_pause": KEY_PAUSE, "key_sysrq": KEY_SYSRQ, "key_kp0": KEY_KP0, "key_kp1": KEY_KP1, "key_kp2": KEY_KP2, "key_kp3": KEY_KP3, "key_kp4": KEY_KP4, "key_kp5": KEY_KP5, "key_kp6": KEY_KP6, "key_kp7": KEY_KP7, "key_kp8": KEY_KP8, "key_kp9": KEY_KP9, "key_kpdot": KEY_KPDOT, "key_kpslash": KEY_KPSLASH, "key_kpasterisk": KEY_KPASTERISK, "key_kpminus": KEY_KPMINUS, "key_kpplus": KEY_KPPLUS, "key_kpenter": KEY_KPENTER, "key_kpequal": KEY_KPEQUAL, "key_f1": KEY_F1, "key_f2": KEY_F2, "key_f3": KEY_F3, "key_f4": KEY_F4, "key_f5": KEY_F5, "key_f6": KEY_F6, "key_f7": KEY_F7, "key_f8": KEY_F8, "key_f9": KEY_F9, "key_f10": KEY_F10, "key_f11": KEY_F11, "key_f12": KEY_F12, "key_f13": KEY_F13, "key_f14": KEY_F14, "key_f15": KEY_F15, "key_f16": KEY_F16, "key_f17": KEY_F17, "key_f18": KEY_F18, "key_f19": KEY_F19, "key_f20": KEY_F20, "key_f21": KEY_F21, "key_f22": KEY_F22, "key_f23": KEY_F23, "key_f24": KEY_F24,
+	"apostrophe": KEY_APOSTROPHE, "backslash": KEY_BACKSLASH, "comma": KEY_COMMA, "dot": KEY_DOT, "equal": KEY_EQUAL, "leftbrace": KEY_LEFTBRACE, "rightbrace": KEY_RIGHTBRACE, "semicolon": KEY_SEMICOLON, "slash": KEY_SLASH, "leftctrl": KEY_LEFTCTRL, "rightctrl": KEY_RIGHTCTRL, "leftshift": KEY_LEFTSHIFT, "rightshift": KEY_RIGHTSHIFT, "leftalt": KEY_LEFTALT, "rightalt": KEY_RIGHTALT, "leftmeta": KEY_LEFTMETA, "rightmeta": KEY_RIGHTMETA,
+	"key_apostrophe": KEY_APOSTROPHE, "key_grave": KEY_GRAVE, "key_backslash": KEY_BACKSLASH, "key_comma": KEY_COMMA, "key_compose": KEY_COMPOSE, "key_dot": KEY_DOT, "key_equal": KEY_EQUAL, "key_leftbrace": KEY_LEFTBRACE, "key_rightbrace": KEY_RIGHTBRACE, "key_minus": KEY_MINUS, "key_semicolon": KEY_SEMICOLON, "key_slash": KEY_SLASH, "key_esc": KEY_ESC, "key_tab": KEY_TAB, "key_enter": KEY_ENTER, "key_backspace": KEY_BACKSPACE, "key_space": KEY_SPACE, "key_capslock": KEY_CAPSLOCK, "key_numlock": KEY_NUMLOCK, "key_scrolllock": KEY_SCROLLLOCK, "key_leftctrl": KEY_LEFTCTRL, "key_rightctrl": KEY_RIGHTCTRL, "key_leftshift": KEY_LEFTSHIFT, "key_rightshift": KEY_RIGHTSHIFT, "key_leftalt": KEY_LEFTALT, "key_rightalt": KEY_RIGHTALT, "key_leftmeta": KEY_LEFTMETA, "key_rightmeta": KEY_RIGHTMETA, "key_home": KEY_HOME, "key_end": KEY_END, "key_insert": KEY_INSERT, "key_delete": KEY_DELETE, "key_pageup": KEY_PAGEUP, "key_pagedown": KEY_PAGEDOWN, "key_up": KEY_UP, "key_down": KEY_DOWN, "key_left": KEY_LEFT, "key_right": KEY_RIGHT, "key_pause": KEY_PAUSE, "key_sysrq": KEY_SYSRQ, "key_kp0": KEY_KP0, "key_kp1": KEY_KP1, "key_kp2": KEY_KP2, "key_kp3": KEY_KP3, "key_kp4": KEY_KP4, "key_kp5": KEY_KP5, "key_kp6": KEY_KP6, "key_kp7": KEY_KP7, "key_kp8": KEY_KP8, "key_kp9": KEY_KP9, "key_kpdot": KEY_KPDOT, "key_kpslash": KEY_KPSLASH, "key_kpasterisk": KEY_KPASTERISK, "key_kpminus": KEY_KPMINUS, "key_kpplus": KEY_KPPLUS, "key_kpenter": KEY_KPENTER, "key_kpequal": KEY_KPEQUAL, "key_f1": KEY_F1, "key_f2": KEY_F2, "key_f3": KEY_F3, "key_f4": KEY_F4, "key_f5": KEY_F5, "key_f6": KEY_F6, "key_f7": KEY_F7, "key_f8": KEY_F8, "key_f9": KEY_F9, "key_f10": KEY_F10, "key_f11": KEY_F11, "key_f12": KEY_F12, "key_f13": KEY_F13, "key_f14": KEY_F14, "key_f15": KEY_F15, "key_f16": KEY_F16, "key_f17": KEY_F17, "key_f18": KEY_F18, "key_f19": KEY_F19, "key_f20": KEY_F20, "key_f21": KEY_F21, "key_f22": KEY_F22, "key_f23": KEY_F23, "key_f24": KEY_F24,
 }
 var KeyToString = map[uint16]string{
 	KEY_A: "a", KEY_B: "b", KEY_C: "c", KEY_D: "d", KEY_E: "e", KEY_F: "f", KEY_G: "g", KEY_H: "h", KEY_I: "i", KEY_J: "j", KEY_K: "k", KEY_L: "l", KEY_M: "m", KEY_N: "n", KEY_O: "o", KEY_P: "p", KEY_Q: "q", KEY_R: "r", KEY_S: "s", KEY_T: "t", KEY_U: "u", KEY_V: "v", KEY_W: "w", KEY_X: "x", KEY_Y: "y", KEY_Z: "z",
@@ -98,4 +101,6 @@ var KeyToString = map[uint16]string{
 	KEY_MINUS:      "-",
 	KEY_SEMICOLON:  ";",
 	KEY_SLASH:      "/",
+	KEY_LEFTBRACE:  "[",
+	KEY_RIGHTBRACE: "]",
 }
