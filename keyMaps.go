@@ -1,0 +1,57 @@
+package input
+
+var StringToKey = map[string]uint16{
+	"esc": KEY_ESC, "escape": KEY_ESC, "tab": KEY_TAB, "enter": KEY_ENTER, "\\n": KEY_ENTER, "\n": KEY_ENTER,
+	"bs": KEY_BACKSPACE, "backspace": KEY_BACKSPACE, "spc": KEY_SPACE, "space": KEY_SPACE,
+	"capslock": KEY_CAPSLOCK, "numlock": KEY_NUMLOCK, "scrolllock": KEY_SCROLLLOCK,
+	"ctrl": KEY_LEFTCTRL, "lctrl": KEY_LEFTCTRL, "rctrl": KEY_RIGHTCTRL, "<ctrl": KEY_LEFTCTRL, ">ctrl": KEY_RIGHTCTRL,
+	"shift": KEY_LEFTSHIFT, "lshift": KEY_LEFTSHIFT, "rshift": KEY_RIGHTSHIFT, "<shift": KEY_LEFTSHIFT, ">shift": KEY_RIGHTSHIFT,
+	"alt": KEY_LEFTALT, "lalt": KEY_LEFTALT, "ralt": KEY_RIGHTALT, "<alt": KEY_LEFTALT, ">alt": KEY_RIGHTALT,
+	//
+	"<super": KEY_LEFTMETA, ">super": KEY_RIGHTMETA,
+	"super": KEY_LEFTMETA, "lsuper": KEY_LEFTMETA, "rsuper": KEY_RIGHTMETA,
+	"<meta": KEY_LEFTMETA, ">meta": KEY_RIGHTMETA,
+	"meta": KEY_LEFTMETA, "lmeta": KEY_LEFTMETA, "rmeta": KEY_RIGHTMETA,
+	"<win": KEY_LEFTMETA, ">win": KEY_RIGHTMETA,
+	"win": KEY_LEFTMETA, "lwin": KEY_LEFTMETA, "rwin": KEY_RIGHTMETA,
+	//
+	"home": KEY_HOME, "end": KEY_END, "ins": KEY_INSERT, "insert": KEY_INSERT,
+	"del": KEY_DELETE, "delete": KEY_DELETE,
+	"pgup": KEY_PAGEUP, "pageup": KEY_PAGEUP, "pgdown": KEY_PAGEDOWN, "pagedown": KEY_PAGEDOWN,
+	"up": KEY_UP, "down": KEY_DOWN, "left": KEY_LEFT, "right": KEY_RIGHT,
+	"pause": KEY_PAUSE, "sysrq": KEY_SYSRQ, "printscreen": KEY_SYSRQ,
+	"kp0": KEY_KP0, "kp1": KEY_KP1, "kp2": KEY_KP2, "kp3": KEY_KP3, "kp4": KEY_KP4,
+	"kp5": KEY_KP5, "kp6": KEY_KP6, "kp7": KEY_KP7, "kp8": KEY_KP8, "kp9": KEY_KP9,
+	"kp.": KEY_KPDOT, "kpdot": KEY_KPDOT, "kp/": KEY_KPSLASH, "kpslash": KEY_KPSLASH, "kp*": KEY_KPASTERISK, "kpasterisk": KEY_KPASTERISK, "kpstar": KEY_KPASTERISK,
+	"kp-": KEY_KPMINUS, "kpsub": KEY_KPMINUS, "kpminus": KEY_KPMINUS, "kp+": KEY_KPPLUS, "kpadd": KEY_KPPLUS, "kpplus": KEY_KPPLUS, "kp\\n": KEY_KPENTER, "kp\n": KEY_KPENTER, "kpenter": KEY_KPENTER, "kp=": KEY_KPEQUAL, "kpequal": KEY_KPEQUAL,
+	"f1": KEY_F1, "f2": KEY_F2, "f3": KEY_F3, "f4": KEY_F4, "f5": KEY_F5,
+	"f6": KEY_F6, "f7": KEY_F7, "f8": KEY_F8, "f9": KEY_F9, "f10": KEY_F10,
+	"f11": KEY_F11, "f12": KEY_F12, "f13": KEY_F13, "f14": KEY_F14, "f15": KEY_F15,
+	"f16": KEY_F16, "f17": KEY_F17, "f18": KEY_F18, "f19": KEY_F19, "f20": KEY_F20,
+	"f21": KEY_F21, "f22": KEY_F22, "f23": KEY_F23, "f24": KEY_F24,
+}
+var KeyToString = map[uint16]string{
+	KEY_ESC: "esc", KEY_TAB: "tab", KEY_ENTER: "enter",
+	KEY_BACKSPACE: "bs", KEY_SPACE: "space",
+	KEY_CAPSLOCK: "capslock", KEY_NUMLOCK: "numlock", KEY_SCROLLLOCK: "scrolllock",
+	KEY_LEFTCTRL: "lctrl", KEY_RIGHTCTRL: "rctrl",
+	KEY_LEFTSHIFT: "lshift", KEY_RIGHTSHIFT: "rshift",
+	KEY_LEFTALT: "lalt", KEY_RIGHTALT: "ralt",
+	//
+	KEY_LEFTMETA: "lmeta", KEY_RIGHTMETA: "rmeta",
+	//
+	KEY_HOME: "home", KEY_END: "end", KEY_INSERT: "ins",
+	KEY_DELETE: "del",
+	KEY_PAGEUP: "pgup", KEY_PAGEDOWN: "pgdown",
+	KEY_UP: "up", KEY_DOWN: "down", KEY_LEFT: "left", KEY_RIGHT: "right",
+	KEY_PAUSE: "pause", KEY_SYSRQ: "printscreen",
+	KEY_KP0: "kp0", KEY_KP1: "kp1", KEY_KP2: "kp2", KEY_KP3: "kp3", KEY_KP4: "kp4",
+	KEY_KP5: "kp5", KEY_KP6: "kp6", KEY_KP7: "kp7", KEY_KP8: "kp8", KEY_KP9: "kp9",
+	KEY_KPDOT: "kp.", KEY_KPSLASH: "kp/", KEY_KPASTERISK: "kp*",
+	KEY_KPMINUS: "kp-", KEY_KPPLUS: "kp+", KEY_KPENTER: "kpenter", KEY_KPEQUAL: "kp=",
+	KEY_F1: "f1", KEY_F2: "f2", KEY_F3: "f3", KEY_F4: "f4", KEY_F5: "f5",
+	KEY_F6: "f6", KEY_F7: "f7", KEY_F8: "f8", KEY_F9: "f9", KEY_F10: "f10",
+	KEY_F11: "f11", KEY_F12: "f12", KEY_F13: "f13", KEY_F14: "f14", KEY_F15: "f15",
+	KEY_F16: "f16", KEY_F17: "f17", KEY_F18: "f18", KEY_F19: "f19", KEY_F20: "f20",
+	KEY_F21: "f21", KEY_F22: "f22", KEY_F23: "f23", KEY_F24: "f24",
+}
