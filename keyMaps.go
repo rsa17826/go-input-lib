@@ -1,6 +1,8 @@
 package input
 
 var StringToKey = map[string]uint16{
+	"a": KEY_A, "b": KEY_B, "c": KEY_C, "d": KEY_D, "e": KEY_E, "f": KEY_F, "g": KEY_G, "h": KEY_H, "i": KEY_I, "j": KEY_J, "k": KEY_K, "l": KEY_L, "m": KEY_M, "n": KEY_N, "o": KEY_O, "p": KEY_P, "q": KEY_Q, "r": KEY_R, "s": KEY_S, "t": KEY_T, "u": KEY_U, "v": KEY_V, "w": KEY_W, "x": KEY_X, "y": KEY_Y, "z": KEY_Z,
+	"A": KEY_A, "B": KEY_B, "C": KEY_C, "D": KEY_D, "E": KEY_E, "F": KEY_F, "G": KEY_G, "H": KEY_H, "I": KEY_I, "J": KEY_J, "K": KEY_K, "L": KEY_L, "M": KEY_M, "N": KEY_N, "O": KEY_O, "P": KEY_P, "Q": KEY_Q, "R": KEY_R, "S": KEY_S, "T": KEY_T, "U": KEY_U, "V": KEY_V, "W": KEY_W, "X": KEY_X, "Y": KEY_Y, "Z": KEY_Z,
 	"esc": KEY_ESC, "escape": KEY_ESC, "tab": KEY_TAB, "enter": KEY_ENTER, "\\n": KEY_ENTER, "\n": KEY_ENTER,
 	"bs": KEY_BACKSPACE, "backspace": KEY_BACKSPACE, "spc": KEY_SPACE, "space": KEY_SPACE,
 	"capslock": KEY_CAPSLOCK, "numlock": KEY_NUMLOCK, "scrolllock": KEY_SCROLLLOCK,
@@ -35,6 +37,7 @@ var StringToKey = map[string]uint16{
 	"mbutton": BTN_MIDDLE,
 }
 var KeyToString = map[uint16]string{
+	KEY_A: "a", KEY_B: "b", KEY_C: "c", KEY_D: "d", KEY_E: "e", KEY_F: "f", KEY_G: "g", KEY_H: "h", KEY_I: "i", KEY_J: "j", KEY_K: "k", KEY_L: "l", KEY_M: "m", KEY_N: "n", KEY_O: "o", KEY_P: "p", KEY_Q: "q", KEY_R: "r", KEY_S: "s", KEY_T: "t", KEY_U: "u", KEY_V: "v", KEY_W: "w", KEY_X: "x", KEY_Y: "y", KEY_Z: "z",
 	KEY_ESC: "esc", KEY_TAB: "tab", KEY_ENTER: "enter",
 	KEY_BACKSPACE: "bs", KEY_SPACE: "space",
 	KEY_CAPSLOCK: "capslock", KEY_NUMLOCK: "numlock", KEY_SCROLLLOCK: "scrolllock",
