@@ -67,6 +67,14 @@ const (
 	// Bus type
 	BUS_USB = 0x0003
 
+	KEY_STOP      = 128 // 0x80 - Browser Stop
+	KEY_BOOKMARKS = 156 // 0x9c
+	KEY_BACK      = 158 // 0x9e - Browser Back
+	KEY_FORWARD   = 159 // 0x9f - Browser Forward
+	KEY_HOMEPAGE  = 172 // 0xac
+	KEY_REFRESH   = 173 // 0xad
+	KEY_SEARCH    = 217 // 0xd9
+
 	// Key codes
 	KEY_ESC          = 1
 	KEY_1            = 2

@@ -69,11 +69,19 @@ var StringToKey = map[string]uint16{
 	"voldown": KEY_VOLUMEDOWN, "volumedown": KEY_VOLUMEDOWN,
 	"volup": KEY_VOLUMEUP, "volumeup": KEY_VOLUMEUP,
 	"playpause": KEY_PLAYPAUSE, "toggleplay": KEY_PLAYPAUSE,
-	"stop": KEY_STOPCD, "stopcd": KEY_STOPCD,
-	"prev": KEY_PREVIOUSSONG, "previous": KEY_PREVIOUSSONG, "previoussong": KEY_PREVIOUSSONG,
+	"stopcd": KEY_STOPCD,
+	"prev":   KEY_PREVIOUSSONG, "previous": KEY_PREVIOUSSONG, "previoussong": KEY_PREVIOUSSONG,
 	"next": KEY_NEXTSONG, "nextsong": KEY_NEXTSONG,
 	//
 	"calc": KEY_CALC, "calculator": KEY_CALC,
+	//
+	"stop":      KEY_STOP,
+	"bookmarks": KEY_BOOKMARKS, "bookmark": KEY_BOOKMARKS,
+	"back": KEY_BACK, "browserback": KEY_BACK,
+	"forward": KEY_FORWARD, "browserforward": KEY_FORWARD,
+	"homepage": KEY_HOMEPAGE, "browserhomepage": KEY_HOMEPAGE,
+	"refresh": KEY_REFRESH, "browserrefresh": KEY_REFRESH, "reload": KEY_REFRESH, "browserreload": KEY_REFRESH,
+	"search": KEY_SEARCH, "browsersearch": KEY_SEARCH,
 }
 var KeyToString = map[uint16]string{
 	KEY_A: "a", KEY_B: "b", KEY_C: "c", KEY_D: "d", KEY_E: "e", KEY_F: "f", KEY_G: "g", KEY_H: "h", KEY_I: "i", KEY_J: "j", KEY_K: "k", KEY_L: "l", KEY_M: "m", KEY_N: "n", KEY_O: "o", KEY_P: "p", KEY_Q: "q", KEY_R: "r", KEY_S: "s", KEY_T: "t", KEY_U: "u", KEY_V: "v", KEY_W: "w", KEY_X: "x", KEY_Y: "y", KEY_Z: "z",
@@ -126,9 +134,17 @@ var KeyToString = map[uint16]string{
 	KEY_VOLUMEDOWN:   "voldown",
 	KEY_VOLUMEUP:     "volup",
 	KEY_PLAYPAUSE:    "playpause",
-	KEY_STOPCD:       "stop",
+	KEY_STOPCD:       "stopcd",
 	KEY_PREVIOUSSONG: "prev",
 	KEY_NEXTSONG:     "next",
 	//
 	KEY_CALC: "calc",
+	//
+	KEY_STOP:      "browserstop",
+	KEY_BOOKMARKS: "browserbookmarks",
+	KEY_BACK:      "browserback",
+	KEY_FORWARD:   "browserforward",
+	KEY_HOMEPAGE:  "browserhomepage",
+	KEY_REFRESH:   "browserrefresh",
+	KEY_SEARCH:    "browsersearch",
 }
