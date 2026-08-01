@@ -312,6 +312,14 @@ var allKeyCodes = map[uint16]struct{}{
 
 	// print screen
 	KEY_SYSRQ: {},
+
+	// Browser / media keys
+	KEY_STOP: {}, KEY_BOOKMARKS: {}, KEY_BACK: {}, KEY_FORWARD: {},
+	KEY_HOMEPAGE: {}, KEY_REFRESH: {}, KEY_SEARCH: {},
+	KEY_MUTE: {}, KEY_VOLUMEDOWN: {}, KEY_VOLUMEUP: {}, KEY_POWER: {},
+	KEY_SLEEP: {}, KEY_WAKEUP: {}, KEY_CALC: {}, KEY_MENU: {}, KEY_COMPOSE: {},
+	KEY_NEXTSONG: {}, KEY_PLAYPAUSE: {}, KEY_PREVIOUSSONG: {}, KEY_STOPCD: {},
+	KEY_PAUSE: {},
 }
 
 // CharKeyMap maps every typeable rune to its keycode and whether Shift is needed.
