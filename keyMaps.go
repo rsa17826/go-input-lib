@@ -24,6 +24,7 @@ var StringToKey = map[string]uint16{
 	"forwardshasl": KEY_SLASH,
 	"menu":         KEY_COMPOSE,
 	"apps":         KEY_COMPOSE,
+	"app":          KEY_COMPOSE,
 	//
 	"esc": KEY_ESC, "escape": KEY_ESC, "tab": KEY_TAB, "enter": KEY_ENTER, "return": KEY_ENTER, "\\n": KEY_ENTER, "\n": KEY_ENTER,
 	"[": KEY_LEFTBRACE, "]": KEY_RIGHTBRACE,
