@@ -205,6 +205,31 @@ const (
 	KEY_F22          = 192
 	KEY_F23          = 193
 	KEY_F24          = 194
+	// Controller Buttons
+	BTN_GAMEPAD = 0x130
+	BTN_SOUTH   = 0x130 // A button
+	BTN_EAST    = 0x131 // B button
+	BTN_C       = 0x132
+	BTN_NORTH   = 0x133 // X button
+	BTN_WEST    = 0x134 // Y button
+	BTN_Z       = 0x135
+	BTN_TL      = 0x136 // Left Bumper (L1)
+	BTN_TR      = 0x137 // Right Bumper (R1)
+	BTN_TL2     = 0x138 // Left Trigger Button (L2)
+	BTN_TR2     = 0x139 // Right Trigger Button (R2)
+	BTN_SELECT  = 0x13a // Back/Select
+	BTN_START   = 0x13b // Start
+	BTN_MODE    = 0x13c // Guide/Home
+	BTN_THUMBL  = 0x13d // Left Stick Click (L3)
+	BTN_THUMBR  = 0x13e // Right Stick Click (R3)
+
+	// Controller Absolute Axes
+	ABS_Z     = 0x02 // Left Trigger (Analog)
+	ABS_RX    = 0x03 // Right Stick X
+	ABS_RY    = 0x04 // Right Stick Y
+	ABS_RZ    = 0x05 // Right Trigger (Analog)
+	ABS_HAT0X = 0x10 // D-Pad X
+	ABS_HAT0Y = 0x11 // D-Pad Y
 
 	EVIOCGKEY = 0x80404518 // ioctl code to get key state
 	KEY_MAX   = 0x2ff
