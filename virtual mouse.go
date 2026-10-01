@@ -2,6 +2,7 @@ package input
 
 import (
 	"encoding/binary"
+	"fmt"
 	"time"
 
 	"golang.org/x/sys/unix"
@@ -50,19 +51,53 @@ func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error)
 	}
 
 	ifd := int(fd.Fd())
-	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_KEY)
-	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_LEFT)
-	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_RIGHT)
-	unix.IoctlSetInt(ifd, UI_SET_KEYBIT, BTN_MIDDLE)
-	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_REL)
-	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_X)
-	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_Y)
-	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_WHEEL)
-	unix.IoctlSetInt(ifd, UI_SET_RELBIT, REL_HWHEEL)
+	if err := mustIoctl(ifd, UI_SET_EVBIT, EV_KEY); err != nil {
+		return &VirtualMouse{}, err
+	}
 
-	unix.IoctlSetInt(ifd, UI_SET_EVBIT, EV_ABS)
-	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_X)
-	unix.IoctlSetInt(ifd, UI_SET_ABSBIT, ABS_Y)
+	if err := mustIoctl(ifd, UI_SET_KEYBIT, BTN_LEFT); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_KEYBIT, BTN_RIGHT); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_KEYBIT, BTN_MIDDLE); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_EVBIT, EV_REL); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_RELBIT, REL_X); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_RELBIT, REL_Y); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_RELBIT, REL_WHEEL); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_RELBIT, REL_HWHEEL); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_EVBIT, EV_ABS); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_ABSBIT, ABS_X); err != nil {
+		return &VirtualMouse{}, err
+	}
+
+	if err := mustIoctl(ifd, UI_SET_ABSBIT, ABS_Y); err != nil {
+		return &VirtualMouse{}, err
+	}
 
 	var setup uinputUserDev
 	copy(setup.Name[:], name)
@@ -73,9 +108,20 @@ func CreateVirtualMouse(name string, opts ...MouseOption) (*VirtualMouse, error)
 		fd.Close()
 		return nil, err
 	}
-	unix.IoctlSetInt(int(fd.Fd()), UI_DEV_CREATE, 0)
+	if err := mustIoctl(int(fd.Fd()), UI_DEV_CREATE, 0); err != nil {
+		return &VirtualMouse{}, err
+	}
 
 	return &VirtualMouse{VirtualDev: VirtualDev{fd}, MaxX: cfg.maxX, MaxY: cfg.maxY}, nil
+}
+func mustIoctl(fd int, req uint, val int) error {
+	if err := unix.IoctlSetInt(fd, req, val); err != nil {
+		return fmt.Errorf(
+			"uinput ioctl %#x(%d) failed: %v",
+			req, val, err,
+		)
+	}
+	return nil
 }
 
 // Click sends a sequence of button events. Args can be any mix of RawButton,
